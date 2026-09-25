@@ -255,10 +255,55 @@ class InvestigationTrajectoryV1:
         return index
 
 
+def investigation_from_canonical_bytes(content_bytes: bytes) -> InvestigationTrajectoryV1:
+    """Rebuild a document from its canonical bytes, refusing anything that is not exactly canonical."""
+
+    try:
+        decoded = content_bytes.decode("utf-8")
+        payload = json.loads(decoded)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("investigation attachment is not UTF-8 JSON") from error
+    if not isinstance(payload, dict):
+        raise ValueError("investigation attachment must contain a JSON object")
+    if payload.get("schema_version") != INVESTIGATION_TRAJECTORY_SCHEMA_VERSION:
+        raise ValueError("investigation attachment has an unsupported schema version")
+
+    document_payload = dict(payload)
+    document_payload.pop("schema_version", None)
+    source_trace_ref = document_payload.pop("source_trace_ref", None)
+    if not isinstance(source_trace_ref, Mapping):
+        raise ValueError("investigation attachment has no source_trace_ref")
+    for timestamp_name in ("started_at", "completed_at"):
+        value = document_payload.get(timestamp_name)
+        if value is not None:
+            document_payload[timestamp_name] = _parse_timestamp(value, timestamp_name)
+
+    try:
+        document = InvestigationTrajectoryV1(
+            source_trace_ref=SourceTraceRef(**dict(source_trace_ref)),
+            **document_payload,
+        )
+    except (TypeError, ValueError) as error:
+        raise ValueError("investigation attachment does not match InvestigationTrajectoryV1") from error
+    if document.canonical_bytes() != content_bytes:
+        raise ValueError("investigation attachment bytes are not canonical")
+    return document
+
+
+def _parse_timestamp(value: object, field_name: str) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError(f"investigation attachment {field_name} must be a timestamp string")
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(f"investigation attachment {field_name} is invalid") from error
+
+
 __all__ = [
     "INVESTIGATION_TRAJECTORY_SCHEMA_VERSION",
     "REVISION_EXTENSION",
     "InvestigationStatus",
     "InvestigationTrajectoryV1",
     "SourceTraceRef",
+    "investigation_from_canonical_bytes",
 ]

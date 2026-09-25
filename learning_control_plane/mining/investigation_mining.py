@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
 from ..contracts.evidence import EvidenceContext
-from ..contracts.investigation import INVESTIGATION_TRAJECTORY_SCHEMA_VERSION, InvestigationTrajectoryV1, SourceTraceRef
+from ..contracts.investigation import InvestigationTrajectoryV1, investigation_from_canonical_bytes
 from ..evaluation.evaluation import EvaluationCase
 from ..evaluation.verification import VERIFICATION_SCHEMA_VERSION
 from ..providers.investigation_publisher import (
@@ -107,7 +105,7 @@ class MlflowInvestigationReader:
             attachment_id = attachment_details.get("attachment_id")
             if not isinstance(attachment_id, str) or not attachment_id:
                 raise ValueError("MLflow investigation attachment has no attachment_id")
-            document = _document_from_canonical_bytes(downloader.download(trace, attachment_id))
+            document = investigation_from_canonical_bytes(downloader.download(trace, attachment_id))
             _verify_trace_index(tags, document)
             documents.append(document)
 
@@ -189,48 +187,6 @@ def _investigation_attachment_reference(trace: Any) -> str:
         if isinstance(attachment_reference, str):
             return attachment_reference
     raise ValueError("MLflow investigation trace has no investigation attachment")
-
-
-def _document_from_canonical_bytes(content_bytes: bytes) -> InvestigationTrajectoryV1:
-    try:
-        decoded = content_bytes.decode("utf-8")
-        payload = json.loads(decoded)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise ValueError("investigation attachment is not UTF-8 JSON") from error
-    if not isinstance(payload, dict):
-        raise ValueError("investigation attachment must contain a JSON object")
-    if payload.get("schema_version") != INVESTIGATION_TRAJECTORY_SCHEMA_VERSION:
-        raise ValueError("investigation attachment has an unsupported schema version")
-
-    document_payload = dict(payload)
-    document_payload.pop("schema_version", None)
-    source_trace_ref = document_payload.pop("source_trace_ref", None)
-    if not isinstance(source_trace_ref, Mapping):
-        raise ValueError("investigation attachment has no source_trace_ref")
-    for timestamp_name in ("started_at", "completed_at"):
-        value = document_payload.get(timestamp_name)
-        if value is not None:
-            document_payload[timestamp_name] = _parse_timestamp(value, timestamp_name)
-
-    try:
-        document = InvestigationTrajectoryV1(
-            source_trace_ref=SourceTraceRef(**dict(source_trace_ref)),
-            **document_payload,
-        )
-    except (TypeError, ValueError) as error:
-        raise ValueError("investigation attachment does not match InvestigationTrajectoryV1") from error
-    if document.canonical_bytes() != content_bytes:
-        raise ValueError("investigation attachment bytes are not canonical")
-    return document
-
-
-def _parse_timestamp(value: object, field_name: str) -> datetime:
-    if not isinstance(value, str):
-        raise ValueError(f"investigation attachment {field_name} must be a timestamp string")
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as error:
-        raise ValueError(f"investigation attachment {field_name} is invalid") from error
 
 
 def _verify_trace_index(tags: Mapping[str, str], document: InvestigationTrajectoryV1) -> None:
