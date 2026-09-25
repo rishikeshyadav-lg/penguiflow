@@ -7,21 +7,30 @@ although zeros claim the scope delivered nothing, which a scope with no rows can
 A confirmed "no data" answer is `handled_correctly` (code `no_data_confirmed`): right, but with
 nothing to check or learn from. Stating the scope's values, or zero totals, fails. An answer that
 does neither has `no_data_to_check`.
+
+A question with no reference query (a trend, a period-over-period change) can still have a
+confirmed "no data" answer: `EmptyLookupRule` says which of the agent's calls looked the question's
+scope up and what an empty result looks like, and `no_data_confirmed_by_empty_lookups` accepts the
+answer when every such lookup came back empty.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from typing import Any
 
 from ..evaluation.verification import VerificationCheck
 from .answer_facts import MetricVocabulary, stated_values
 from .expectations import RubricJudgment
+from .runs import AgentRun, AgentStep
+from .steps import step_failed
 
 # An answer saying the scope has no data; figures it adds (other entities as suggestions) are not
 # claims about the scope.
 NO_DATA_PHRASES = re.compile(
-    r"\b(not found|no data|no records|no rows|no match|not available|does not appear|doesn't appear|"
+    r"\b(not found|no data|no records|no rows|no match(?:es|ing)?|not available|does not appear|doesn't appear|"
     r"(unable|could not|couldn't|was unable) to (find|locate)|returns? (zero|no) (results|rows))\b",
     re.IGNORECASE,
 )
@@ -60,6 +69,51 @@ def no_data_judgment(
     )
 
 
+# Meaning findings a correct "no data" answer cannot have earned: saying the scope has no data answers
+# the question, and nothing found contradicts it.
+FINDINGS_ANSWERED_BY_NO_DATA = frozenset({"question_not_answered", "contradicts_tool_results"})
+
+
+@dataclass(frozen=True, slots=True)
+class EmptyLookupRule:
+    """Which calls look up the question's scope, and when one of them found nothing.
+
+    `is_scoped_lookup` marks a data call restricted to what the question named (for example one
+    with filters); `returned_nothing` marks its result as empty. `reference_found_data` says whether
+    the judge's own reference, when there is one, found rows.
+    """
+
+    is_scoped_lookup: Callable[[AgentStep], bool]
+    returned_nothing: Callable[[AgentStep], bool]
+    vocabulary: MetricVocabulary
+    reference_found_data: Callable[[Any], bool] = bool
+    phrases: re.Pattern[str] = NO_DATA_PHRASES
+
+
+def no_data_confirmed_by_empty_lookups(
+    run: AgentRun, rule: EmptyLookupRule, *, reference: Any, findings: Sequence[str]
+) -> bool:
+    """Return whether a "no data" answer is confirmed by the agent's own empty lookups.
+
+    The answer must say there is no data and state no zero totals; every scoped lookup must have
+    come back empty; the judge's reference must not have found rows; and no meaning finding other
+    than "not answered" or "contradiction" may apply. Such a run is handled correctly, never
+    verified or mined, so a wrong call here only changes how a run is reported.
+    """
+
+    answer = run.final_answer or ""
+    if reference is not None and rule.reference_found_data(reference):
+        return False
+    if not rule.phrases.search(answer):
+        return False
+    if any(code not in FINDINGS_ANSWERED_BY_NO_DATA for code in findings):
+        return False
+    if any(value.explicit and value.value == 0 for value in stated_values(answer, rule.vocabulary)):
+        return False
+    scoped_lookups = [step for step in run.steps if rule.is_scoped_lookup(step) and not step_failed(step)]
+    return bool(scoped_lookups) and all(rule.returned_nothing(step) for step in scoped_lookups)
+
+
 def nothing_fetched_judgment() -> RubricJudgment:
     """Judge an answer whose question needs values the agent never fetched and the judge could not compute."""
 
@@ -71,4 +125,11 @@ def nothing_fetched_judgment() -> RubricJudgment:
     )
 
 
-__all__ = ["NO_DATA_PHRASES", "no_data_judgment", "nothing_fetched_judgment"]
+__all__ = [
+    "EmptyLookupRule",
+    "FINDINGS_ANSWERED_BY_NO_DATA",
+    "NO_DATA_PHRASES",
+    "no_data_confirmed_by_empty_lookups",
+    "no_data_judgment",
+    "nothing_fetched_judgment",
+]

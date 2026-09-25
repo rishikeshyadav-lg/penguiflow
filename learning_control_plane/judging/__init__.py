@@ -15,6 +15,7 @@ from .answer_text import (
     shown_to_user,
     strip_shortened_list_note,
 )
+from .claims import BENCHMARK_WORDING, UNSUPPORTED_BENCHMARK_CLAIM, BenchmarkClaimRule, states_unsupported_benchmark
 from .classification import ClassificationRead, freeze_classification, majority, mining_skip_reason
 from .expectations import (
     OVERALL,
@@ -45,7 +46,14 @@ from .meaning import (
     MeaningQuestion,
     tool_evidence,
 )
-from .no_data import NO_DATA_PHRASES, no_data_judgment, nothing_fetched_judgment
+from .no_data import (
+    FINDINGS_ANSWERED_BY_NO_DATA,
+    NO_DATA_PHRASES,
+    EmptyLookupRule,
+    no_data_confirmed_by_empty_lookups,
+    no_data_judgment,
+    nothing_fetched_judgment,
+)
 from .outcomes import (
     AGENT_ERROR_CODE,
     HANDLED_CORRECTLY_CODES,
@@ -67,10 +75,14 @@ __all__ = [
     "AGENT_ERROR_CODE",
     "AgentRun",
     "AgentStep",
+    "BENCHMARK_WORDING",
+    "BenchmarkClaimRule",
     "ClassificationRead",
     "DEFAULT_MEANING_QUESTIONS",
     "DomainJudge",
+    "EmptyLookupRule",
     "Expectation",
+    "FINDINGS_ANSWERED_BY_NO_DATA",
     "FINDING_BAR",
     "HANDLED_CORRECTLY_CODES",
     "JUDGE_HARD_FAILURE_CODES",
@@ -96,6 +108,7 @@ __all__ = [
     "SignatureRules",
     "StatedValue",
     "Tolerance",
+    "UNSUPPORTED_BENCHMARK_CLAIM",
     "VerificationProjector",
     "all_criteria",
     "anchored_values",
@@ -112,6 +125,7 @@ __all__ = [
     "metric_named",
     "mining_skip_reason",
     "name_forms",
+    "no_data_confirmed_by_empty_lookups",
     "no_data_judgment",
     "normalized_signature",
     "nothing_fetched_judgment",
@@ -127,6 +141,7 @@ __all__ = [
     "shown_to_user",
     "squash",
     "stated_values",
+    "states_unsupported_benchmark",
     "step_failed",
     "strip_shortened_list_note",
     "tool_evidence",

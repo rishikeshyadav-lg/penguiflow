@@ -7,9 +7,11 @@ the fail-only meaning check:
 1. no final answer: failed;
 2. an answer cut off mid-sentence: agent error, whatever numbers it reached;
 3. an answer asking which of several matching entities was meant: handled correctly;
-4. a service the question needs is off: handled correctly;
-5. the domain judgment (values, scope, completeness, grounding);
-6. meaning findings, which can fail a run but never verify one.
+4. a "no data" answer that every scoped lookup confirmed (when an `EmptyLookupRule` is given):
+   handled correctly;
+5. a service the question needs is off: handled correctly;
+6. the domain judgment (values, scope, completeness, grounding);
+7. meaning findings, which can fail a run but never verify one.
 
 The rubric then requires at least one content criterion to have passed, and drops a required
 criterion that does not apply instead of letting it fail every answer.
@@ -33,6 +35,7 @@ from ..evaluation.verification import (
 from .answer_text import asks_user_to_choose, looks_truncated, shown_to_user
 from .expectations import RubricJudgment
 from .meaning import MeaningCheck
+from .no_data import FINDINGS_ANSWERED_BY_NO_DATA, EmptyLookupRule, no_data_confirmed_by_empty_lookups
 from .outcomes import all_criteria, judge_rubric, outcome_of
 from .runs import AgentRun
 from .scope import entity_named
@@ -53,9 +56,6 @@ _SUBSTANTIVE_CRITERIA = (
     "completeness",
     "interpretation_correctness",
 )
-# Meaning findings that a correct "no data" answer cannot have earned: saying the scope has no data
-# answers the question, and the judge's own query confirmed it.
-_FINDINGS_ANSWERED_BY_NO_DATA = frozenset({"question_not_answered", "contradicts_tool_results"})
 
 
 class DomainJudge(Protocol):
@@ -105,6 +105,7 @@ class OutcomeLadder:
         rubric: FinalAnswerRubricV1 | None = None,
         extra_hard_failure_codes: Sequence[str] = (),
         is_named: Callable[[str, str], bool] = entity_named,
+        empty_lookups: EmptyLookupRule | None = None,
     ) -> None:
         selected_rubric = rubric or FinalAnswerRubricV1()
         if {criterion.criterion_id for criterion in selected_rubric.criteria} != set(_LADDER_CRITERIA):
@@ -114,6 +115,7 @@ class OutcomeLadder:
         self._rubric = selected_rubric
         self._extra_hard_failure_codes = tuple(extra_hard_failure_codes)
         self._is_named = is_named
+        self._empty_lookups = empty_lookups
 
     def judge(
         self,
@@ -152,15 +154,21 @@ class OutcomeLadder:
         candidates = self._domain.clarification_candidates(run)
         if candidates and asks_user_to_choose(answer, candidates, is_named=self._is_named):
             return self._settled(outcome_rubric, "not_applicable", "clarification_requested", "clarification_requested")
+        findings = list(meaning_findings) if meaning_findings is not None else None
+        if self._empty_lookups is not None:
+            findings = findings if findings is not None else self._meaning_codes(run)
+            if no_data_confirmed_by_empty_lookups(run, self._empty_lookups, reference=reference, findings=findings):
+                return self._settled(outcome_rubric, "not_applicable", "scope_has_no_data", "no_data_confirmed")
         if self._domain.service_unavailable(run):
             return self._settled(outcome_rubric, "not_applicable", "service_unavailable", "service_unavailable")
 
         judgment = self._domain.judge(run, reference)
         if judgment is None:
             return self._settled(outcome_rubric, "not_applicable", "no_domain_judgment", "category_not_verifiable")
-        findings = list(meaning_findings) if meaning_findings is not None else self._meaning_codes(run)
+        if findings is None:
+            findings = self._meaning_codes(run)
         if "no_data_confirmed" in judgment.hard_failures:
-            findings = [code for code in findings if code not in _FINDINGS_ANSWERED_BY_NO_DATA]
+            findings = [code for code in findings if code not in FINDINGS_ANSWERED_BY_NO_DATA]
 
         criteria = {
             "factual_numerical_correctness": judgment.numerical,
