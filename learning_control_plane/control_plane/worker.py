@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from ..evaluation.evaluation import Metric, RunOne
 from .control_plane import LearningControlPlane
+
+if TYPE_CHECKING:
+    from ..judging.golden import GoldenReport
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,10 +25,18 @@ class WorkerRun:
 class OfflineEvaluationWorker:
     """Execute persisted draft jobs without participating in agent request handling."""
 
-    def __init__(self, control_plane: LearningControlPlane, *, run_one: RunOne, metric: Metric) -> None:
+    def __init__(
+        self,
+        control_plane: LearningControlPlane,
+        *,
+        run_one: RunOne,
+        metric: Metric,
+        golden_report: GoldenReport | None = None,
+    ) -> None:
         self._control_plane = control_plane
         self._run_one = run_one
         self._metric = metric
+        self._golden_report = golden_report
 
     async def run_pending(self, *, max_jobs: int | None = None) -> WorkerRun:
         """Evaluate a bounded, deterministic batch of jobs currently in draft state."""
@@ -44,6 +56,7 @@ class OfflineEvaluationWorker:
                 pending_job.job_id,
                 self._run_one,
                 self._metric,
+                golden_report=self._golden_report,
             )
             if completed_job.state == "ready_for_review":
                 ready_for_review.append(completed_job.job_id)

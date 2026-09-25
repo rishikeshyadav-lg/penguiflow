@@ -328,6 +328,8 @@ def _metric_summary_payload(summary: MetricSummary) -> dict[str, object]:
         "specification": {
             "name": summary.specification.name,
             "direction": summary.specification.direction,
+            # Written only when set, so summaries of existing policies keep their stored shape.
+            **({"denominator": summary.specification.denominator} if summary.specification.denominator else {}),
         },
         "paired_values": [
             {
@@ -340,6 +342,7 @@ def _metric_summary_payload(summary: MetricSummary) -> dict[str, object]:
         ],
         "missing_case_ids": list(summary.missing_case_ids),
         "incomplete_case_ids": list(summary.incomplete_case_ids),
+        **({"excluded_case_ids": list(summary.excluded_case_ids)} if summary.excluded_case_ids else {}),
     }
 
 
@@ -355,6 +358,7 @@ def _metric_summary_from_payload(payload: Any) -> MetricSummary:
         paired_values=paired_values,
         missing_case_ids=tuple(summary.get("missing_case_ids", [])),
         incomplete_case_ids=tuple(summary.get("incomplete_case_ids", [])),
+        excluded_case_ids=tuple(summary.get("excluded_case_ids", [])),
     )
 
 

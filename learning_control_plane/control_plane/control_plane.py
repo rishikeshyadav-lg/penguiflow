@@ -26,6 +26,7 @@ from ..evaluation.evaluation import (
 )
 
 if TYPE_CHECKING:
+    from ..judging.golden import GoldenReport
     from .persistence import SQLiteControlPlaneRepository
 
 logger = logging.getLogger("learning_control_plane.control_plane")
@@ -106,6 +107,9 @@ class PromotionPolicy:
     protected_source_case_ids: Sequence[str] = ()
     protected_group_metric_names: Sequence[str] = ()
     protected_group_confidence_interval_requirements: Sequence[ConfidenceIntervalRequirement] = ()
+    # When set, a job runs only after the judge passed its golden set, so no paid replay is judged
+    # by a judge that has regressed.
+    require_golden_set: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "policy_version", _non_empty(self.policy_version, "policy_version"))
@@ -648,12 +652,31 @@ class LearningControlPlane:
             receipts=receipts,
         )
 
-    async def run_job(self, job_id: str, run_one: RunOne, metric: Metric) -> LearningJob:
-        """Run one draft job offline and advance it only to review or rejection."""
+    async def run_job(
+        self,
+        job_id: str,
+        run_one: RunOne,
+        metric: Metric,
+        *,
+        golden_report: GoldenReport | None = None,
+    ) -> LearningJob:
+        """Run one draft job offline and advance it only to review or rejection.
+
+        When the policy requires a golden set, the job is refused before any run unless
+        `golden_report` shows the judge passed it; the job stays a draft.
+        """
 
         job = self.get_job(job_id)
         if job.state != "draft":
             raise ValueError(f"learning job is not ready to run: {job.state}")
+        if self._policy.require_golden_set:
+            if golden_report is None:
+                raise ValueError("the promotion policy requires a passing golden set, and none was given")
+            if not golden_report.passed:
+                raise ValueError(
+                    f"the judge failed its golden set ({len(golden_report.new_misses)} new misses); "
+                    "fix the judge before running paid evaluations"
+                )
 
         job = replace(job, state="evaluating", attempt_count=job.attempt_count + 1, error=None)
         self._jobs[job_id] = job
@@ -929,6 +952,10 @@ class LearningControlPlane:
                 metric_improvements[summary.specification.name] = mean_improvement
             for case_id in summary.missing_case_ids:
                 reasons.append(f"missing metric {summary.specification.name} for case {case_id}")
+            if summary.specification.denominator is not None and not summary.paired_values:
+                # Every pair was excluded (for example every run was handled correctly), so there
+                # is no evidence either way; that is never a pass.
+                reasons.append(f"no judged pairs for metric {summary.specification.name}")
 
         target_summaries = self._case_group_summaries(
             evaluation,

@@ -111,15 +111,23 @@ class EvaluationVariant:
 
 @dataclass(frozen=True, slots=True)
 class MetricSpecification:
-    """Name one outcome metric and whether a larger or smaller value is better."""
+    """Name one outcome metric and whether a larger or smaller value is better.
+
+    `denominator` optionally names a metric that is 0 when this metric does not apply to a run (for
+    example "judged" is 0 for an answer handled correctly without anything to check). A pair where
+    either arm's denominator is 0 is left out of this metric's comparison and recorded as excluded.
+    """
 
     name: str
     direction: MetricDirection = "higher_is_better"
+    denominator: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "name", _non_empty(self.name, "metric name"))
         if self.direction not in ("higher_is_better", "lower_is_better"):
             raise ValueError("metric direction must be higher_is_better or lower_is_better")
+        if self.denominator is not None:
+            object.__setattr__(self, "denominator", _non_empty(self.denominator, "metric denominator"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -206,11 +214,14 @@ class MetricSummary:
     paired_values: Sequence[PairedMetricValue]
     missing_case_ids: Sequence[str] = ()
     incomplete_case_ids: Sequence[str] = ()
+    # Pairs left out because the metric did not apply to one arm (its denominator was 0).
+    excluded_case_ids: Sequence[str] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "paired_values", tuple(self.paired_values))
         object.__setattr__(self, "missing_case_ids", tuple(self.missing_case_ids))
         object.__setattr__(self, "incomplete_case_ids", tuple(self.incomplete_case_ids))
+        object.__setattr__(self, "excluded_case_ids", tuple(self.excluded_case_ids))
 
     @property
     def baseline_mean(self) -> float | None:
@@ -302,10 +313,22 @@ class PairedEvaluationResult:
         paired_values: list[PairedMetricValue] = []
         missing_case_ids: list[str] = []
         incomplete_case_ids: list[str] = []
+        excluded_case_ids: list[str] = []
+        denominator = specification.denominator
         for pair in self.case_results:
             if pair.baseline.error is not None or pair.candidate.error is not None:
                 incomplete_case_ids.append(pair.case_id)
                 continue
+
+            if denominator is not None:
+                baseline_applies = pair.baseline.metrics.get(denominator)
+                candidate_applies = pair.candidate.metrics.get(denominator)
+                if baseline_applies is None or candidate_applies is None:
+                    missing_case_ids.append(pair.case_id)
+                    continue
+                if baseline_applies == 0 or candidate_applies == 0:
+                    excluded_case_ids.append(pair.case_id)
+                    continue
 
             baseline = pair.baseline.metrics.get(specification.name)
             candidate = pair.candidate.metrics.get(specification.name)
@@ -330,6 +353,7 @@ class PairedEvaluationResult:
             paired_values=paired_values,
             missing_case_ids=missing_case_ids,
             incomplete_case_ids=incomplete_case_ids,
+            excluded_case_ids=excluded_case_ids,
         )
 
     def mean_metrics(self, variant_id: str) -> dict[str, float]:
