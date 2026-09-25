@@ -11,6 +11,12 @@ from .investigation_publisher import (
     InvestigationPublisher,
     MlflowAttachmentPublisher,
 )
+from .verdict_revision import (
+    RevisionReceipt,
+    TraceTagStore,
+    revise_verdict,
+    revised_investigation,
+)
 
 __all__ = [
     "INVESTIGATION_ATTACHMENT_OUTPUT_KEY",
@@ -20,4 +26,8 @@ __all__ = [
     "InvestigationPublisher",
     "MlflowAssessmentPublisher",
     "MlflowAttachmentPublisher",
+    "RevisionReceipt",
+    "TraceTagStore",
+    "revise_verdict",
+    "revised_investigation",
 ]

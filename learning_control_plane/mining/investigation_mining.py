@@ -94,7 +94,7 @@ class MlflowInvestigationReader:
             filter_string='tags.`learning.investigation.status` = "completed"',
             return_type="list",
         )
-        records: list[TraceLearningRecord] = []
+        documents: list[InvestigationTrajectoryV1] = []
         for trace in traces:
             tags = _trace_tags(trace)
             if not _matches_selection(tags, selection):
@@ -109,8 +109,13 @@ class MlflowInvestigationReader:
                 raise ValueError("MLflow investigation attachment has no attachment_id")
             document = _document_from_canonical_bytes(downloader.download(trace, attachment_id))
             _verify_trace_index(tags, document)
-            records.append(_safe_learning_record(document))
+            documents.append(document)
 
+        # A revision crash can leave a superseded document still tagged completed; its revision wins.
+        superseded_ids = {str(document.revision["supersedes"]) for document in documents if document.revision}
+        records = [
+            _safe_learning_record(document) for document in documents if document.investigation_id not in superseded_ids
+        ]
         return tuple(sorted(records, key=lambda record: (record.recorded_at, record.trace_id)))
 
     def load_cohorts(

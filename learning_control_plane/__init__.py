@@ -110,6 +110,7 @@ from .providers.investigation_publisher import (
     InvestigationPublisher,
     MlflowAttachmentPublisher,
 )
+from .providers.verdict_revision import RevisionReceipt, revise_verdict, revised_investigation
 
 __all__ = [
     "ActivationReceipt",
@@ -177,6 +178,7 @@ __all__ = [
     "PromotionPolicy",
     "ReviewDecision",
     "ReviewQueueItem",
+    "RevisionReceipt",
     "RubricCriterion",
     "RunOne",
     "SQLiteControlPlaneRepository",
@@ -199,5 +201,7 @@ __all__ = [
     "expand_parallel_steps",
     "find_repeated_successful_patterns",
     "reserve_later_held_out_cohort",
+    "revise_verdict",
+    "revised_investigation",
     "score_final_answer",
 ]

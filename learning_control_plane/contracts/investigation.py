@@ -12,6 +12,8 @@ from decimal import Decimal
 from typing import Any, Literal
 
 INVESTIGATION_TRAJECTORY_SCHEMA_VERSION = "investigation_trajectory.v1"
+# Extension written on a document that corrects an earlier document's verdict (see verdict_revision).
+REVISION_EXTENSION = "learning.revision"
 InvestigationStatus = Literal["completed", "failed", "timed_out", "cancelled", "interrupted", "unknown"]
 _VALID_STATUSES = frozenset({"completed", "failed", "timed_out", "cancelled", "interrupted", "unknown"})
 
@@ -212,6 +214,15 @@ class InvestigationTrajectoryV1:
 
         return f"sha256:{hashlib.sha256(self.canonical_bytes()).hexdigest()}"
 
+    @property
+    def revision(self) -> Mapping[str, Any] | None:
+        """Return the revision record when this document supersedes an earlier one."""
+
+        revision = self.extensions.get(REVISION_EXTENSION)
+        if isinstance(revision, Mapping) and isinstance(revision.get("supersedes"), str):
+            return revision
+        return None
+
     def query_index(self) -> dict[str, str]:
         """Return the small string-only index used to discover investigations."""
 
@@ -237,11 +248,16 @@ class InvestigationTrajectoryV1:
             index["learning.investigation.verified_success"] = str(
                 self.execution_context.get("verified_success") is True
             ).lower()
+        # Only revisions carry these, so the index of every existing document is unchanged.
+        if self.revision is not None:
+            index["learning.investigation.supersedes"] = str(self.revision["supersedes"])
+            index["learning.investigation.revision_key"] = str(self.revision.get("revision_key", ""))
         return index
 
 
 __all__ = [
     "INVESTIGATION_TRAJECTORY_SCHEMA_VERSION",
+    "REVISION_EXTENSION",
     "InvestigationStatus",
     "InvestigationTrajectoryV1",
     "SourceTraceRef",
