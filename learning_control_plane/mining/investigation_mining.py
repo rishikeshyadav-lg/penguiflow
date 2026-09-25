@@ -109,11 +109,7 @@ class MlflowInvestigationReader:
             _verify_trace_index(tags, document)
             documents.append(document)
 
-        # A revision crash can leave a superseded document still tagged completed; its revision wins.
-        superseded_ids = {str(document.revision["supersedes"]) for document in documents if document.revision}
-        records = [
-            _safe_learning_record(document) for document in documents if document.investigation_id not in superseded_ids
-        ]
+        records = [learning_record_from_investigation(document) for document in latest_revisions(documents)]
         return tuple(sorted(records, key=lambda record: (record.recorded_at, record.trace_id)))
 
     def load_cohorts(
@@ -198,6 +194,22 @@ def _verify_trace_index(tags: Mapping[str, str], document: InvestigationTrajecto
     for name, expected_value in expected_tags.items():
         if tags.get(name) != expected_value:
             raise ValueError(f"MLflow investigation tag {name!r} does not match the attachment")
+
+
+def latest_revisions(documents: Sequence[InvestigationTrajectoryV1]) -> list[InvestigationTrajectoryV1]:
+    """Drop every document another one supersedes, so only a run's latest verdict is mined.
+
+    A revision crash can leave a superseded document still marked completed; its revision wins.
+    """
+
+    superseded_ids = {str(document.revision["supersedes"]) for document in documents if document.revision}
+    return [document for document in documents if document.investigation_id not in superseded_ids]
+
+
+def learning_record_from_investigation(document: InvestigationTrajectoryV1) -> TraceLearningRecord:
+    """Project one investigation document into the safe record mining reads."""
+
+    return _safe_learning_record(document)
 
 
 def _safe_learning_record(
@@ -403,4 +415,6 @@ __all__ = [
     "MlflowTraceAttachmentStore",
     "TraceAttachmentDownloader",
     "build_held_out_evaluation_cases",
+    "latest_revisions",
+    "learning_record_from_investigation",
 ]

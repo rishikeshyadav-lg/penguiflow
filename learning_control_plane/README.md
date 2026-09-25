@@ -35,8 +35,14 @@ continue to serve requests with their last valid configuration.
 | `mining/investigation_mining.py` | Read-only verified MLflow attachment reader for safe candidate mining. |
 | `mining/mining.py`, `mining/skill_drafting.py` | Safe pattern mining and the validated advisory-skill drafter. |
 | `providers/investigation_publisher.py` | Idempotent MLflow trace-attachment publisher for investigation documents. |
-| `providers/assessment_publisher.py` | MLflow assessment publisher. |
-| `integrations/penguiflow/projector.py` | PenguiFlow's redaction-first investigation projector and advisory-skill adapter. |
+| `providers/assessment_publisher.py` | MLflow assessment publisher, trace readiness, and the pending-assessment queue. |
+| `judging/` | The judge kit: outcomes, answer reading, expectations, scope, no-data answers, the outcome ladder, the meaning check, frozen classification, the golden-set runner, and the gate's re-judging metric. |
+| `integrations/generic.py` | Framework-neutral run projection and after-the-turn publishing (`RunContext`, `project_run`, `RunPublisher`). |
+| `integrations/penguiflow/projector.py` | PenguiFlow's redaction-first investigation projector (an adapter over `project_run`) and advisory-skill adapter. |
+| `integrations/penguiflow/publishing.py` | `TurnStash` and `PlannerTraceReadiness`: publish when the turn ends, after the trace is persisted. |
+| `providers/verdict_revision.py` | Supersede a published verdict with a corrected one; nothing is deleted. |
+| `providers/local_store.py` | A write-once local directory store for investigations, for integrations without MLflow. |
+| `providers/typesafe_meaning.py` | TypeSafe (Jev) as a meaning judge behind its governance gate (`lcp-typesafe` extra). |
 | `docs/architecture.md` | Boundaries and evidence flow for the MVP. |
 | `docs/control_plane/control_plane.md` | The MVP decision workflow and its safety boundary. |
 | `docs/evaluation/` | Evaluator contract (`evaluation.md`), metric directions and gates (`scoring.md`), verification rubric (`verification.md`). |
@@ -44,6 +50,7 @@ continue to serve requests with their last valid configuration.
 | `docs/integrations/penguiflow/` | PenguiFlow projection contract, adapter, and the Planner V2 held-out inputs. |
 | `docs/providers/mlflow_lineage.md` | MLflow tag, metric, and artifact-path convention. |
 | `docs/mining_skill_drafting.md` | Drafting input, output, validation, and local demo contract. |
+| `docs/judging/` | Integrator guide, the judge mistakes behind each kit piece, and the golden-set protocol. |
 | `FULL_LOOP_RUN.md` | Start-to-finish local MVP setup, execution, and inspection guide. |
 
 Start with [the full local run](FULL_LOOP_RUN.md) before connecting a real agent.
@@ -54,8 +61,9 @@ Start with [the full local run](FULL_LOOP_RUN.md) before connecting a real agent
 - `control_plane/`: candidate lifecycle, SQLite persistence, and offline workers.
 - `evaluation/`: baseline-versus-candidate execution and verification rubrics.
 - `mining/`: MLflow investigation reading, safe pattern mining, and skill drafting.
-- `providers/`: MLflow attachment and assessment publishers.
-- `integrations/penguiflow/`: the optional PenguiFlow projector and advisory-skill adapter.
+- `judging/`: the framework-neutral judge kit.
+- `providers/`: MLflow attachment and assessment publishers, a local store, verdict revision, and the TypeSafe meaning judge.
+- `integrations/`: the generic run projector and publisher, and the optional PenguiFlow adapter.
 - `docs/`: design notes grouped by control-plane area.
 
 Import from these folders or from the package root (`from learning_control_plane import ...`).

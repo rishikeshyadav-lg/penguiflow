@@ -42,5 +42,12 @@ versioned policy and recorded human approval.
 
 `evaluation/` is usable independently by any agent application. A framework
 provider is optional and supplies framework-specific trace projection, candidate
-compilation, and activation. The PenguiFlow integration will use existing
+compilation, and activation. The PenguiFlow integration uses existing
 trajectories and skills without requiring the planner to call the LCP synchronously.
+
+Any agent, with or without a framework, plugs in through `integrations/generic.py`.
+It describes each run as an `AgentRun` and supplies a trusted `RunContext`, and
+`RunPublisher` judges and publishes the run after its turn. The judging rules are
+in `judging/` (the judge kit). An integration supplies only its domain parts:
+metric names, which tools fetch data, an independent reference query, and a
+`DomainJudge`. See [the judge kit](judging/README.md).

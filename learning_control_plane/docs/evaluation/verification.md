@@ -41,6 +41,33 @@ reason codes:
 - `invented_evidence`
 - `false_data_unavailable`
 - `policy_violation`
+
+The judge kit's `judge_rubric` extends a rubric with the judge's own codes. Some
+of them record an outcome rather than a mistake:
+
+- `agent_error`: the answer was cut off mid-sentence.
+- `clarification_requested`, `no_data_confirmed`, `service_unavailable`: the
+  answer was correct but had nothing to check (`handled_correctly`).
+- `no_data_to_check`, `category_not_verifiable`: the judge cannot check this
+  kind of answer (`not_judgeable`).
+- `scope_unconfirmed`, `question_not_answered`, `unsupported_claim`,
+  `invented_figure`, `contradicts_tool_results`: meaning-check and domain
+  findings.
+
+## Judge outcome
+
+`InvestigationVerification.outcome` optionally records what the judge concluded
+about the run as a whole: `verified`, `failed`, `handled_correctly`,
+`agent_error` or `not_judgeable`. It is written to the record only when set, so
+older records and their digests are unchanged. `judging.outcome_of` returns the
+recorded outcome, or the one the hard-failure codes imply for older records.
+Runs handled correctly are never verified, so they are never mined. The gate
+leaves them out of its rates instead of counting them as failures (see
+[scoring](scoring.md)).
+
+The rules that produce these records are generic and live in the judge kit
+(`learning_control_plane.judging`). See the [integrator guide](../judging/integrator_guide.md)
+and the [lessons](../judging/lessons.md) behind each rule.
 Policy compliance, latency, cost, tool-error rate, clarity, customer correction,
 and other outcome metrics remain separately visible. A promotion policy can
 protect them without hiding them inside the accuracy score.
@@ -60,9 +87,12 @@ final answer while calculating checks. The portable investigation stores only:
 - check names, statuses, and reason codes;
 - rubric version, criterion scores, hard failures, and an assessment reference.
 
-The Campaign integration also writes those scores as MLflow trace feedback. The
-MLflow assessment metadata links the rubric, source trace, and investigation, but
-does not include the answer or expected values.
+`MlflowAssessmentPublisher` also writes those scores as MLflow trace feedback.
+The MLflow assessment metadata links the rubric, source trace, and investigation,
+but does not include the answer or expected values. The publisher waits for the
+trace to close (`TraceReadiness`), and when the trace is not ready in time it
+queues the assessment (`PendingAssessmentQueue`) for the offline worker instead
+of dropping it.
 
 For candidate drafting, the offline reader projects only this safe verification
 record into each `TraceLearningRecord`. The pattern sent to a drafting model may
@@ -73,9 +103,9 @@ the drafting prompt.
 
 ## Conservative limitation
 
-The current Campaign deterministic answer checker can fully verify bounded
-aggregate metric answers. It records grounding as partial because a deterministic
-number matcher cannot prove every sentence is supported. Complex narrative,
+A deterministic domain judge can fully verify answers whose values it can compute
+independently (a reference). A fail-only meaning check catches some mistakes that
+value matching cannot see, but it can never verify a run. Complex narrative,
 chart, and open-ended answers remain unverified until a task-specific deterministic
 checker, constrained judge, or human assessment is registered. They are not
 treated as successful mining evidence by default.

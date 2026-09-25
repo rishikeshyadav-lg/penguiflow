@@ -32,6 +32,30 @@ metrics must be at least their threshold, while lower-is-better metrics must be
 at most their threshold. This prevents a candidate from passing merely because
 it improved over a weak baseline while still missing an acceptable floor.
 
-This is descriptive evidence for the deterministic MVP gate, not yet a confidence
-claim. Statistical confidence intervals and sample-size rules remain the next
-milestone.
+`confidence_interval_requirements` add bootstrap confidence bounds on top of the
+point estimates, and `minimum_complete_cases` and
+`minimum_complete_pairs_per_source_case` set the sample-size floor.
+
+## Pairs a metric does not apply to
+
+`MetricSpecification.denominator` names a metric that is 0 when this metric does
+not apply to a run. A pair where either arm's denominator is 0 is left out of the
+comparison and recorded in `MetricSummary.excluded_case_ids`. A pair missing the
+denominator is a missing metric. If every pair is excluded, the candidate is
+rejected with `no judged pairs for metric <name>`: no evidence is never a pass.
+The denominator is opt-in, so existing policies behave as before.
+
+## Re-judging both arms
+
+`judging.VerificationMetric` judges each baseline and candidate run with the
+integration's outcome ladder and reports `verified_success`, `hard_failure`,
+`handled_correctly` and `judged`. `judging.verification_policy` makes
+`verified_success` the primary metric and protects `hard_failure`, both with
+`judged` as their denominator. A candidate must verify more runs without adding
+hard failures, and a run handled correctly on either arm does not count against
+it. `CombinedMetric` adds the integration's own metrics, such as latency or cost,
+beside the judge's.
+
+`PromotionPolicy.require_golden_set` makes `run_job` refuse, before any run and
+without using an attempt, unless it is given a passing golden-set report (see
+[the golden-set protocol](../judging/golden_set.md)).

@@ -7,6 +7,8 @@ from .investigation_mining import (
     MlflowTraceAttachmentStore,
     TraceAttachmentDownloader,
     build_held_out_evaluation_cases,
+    latest_revisions,
+    learning_record_from_investigation,
 )
 from .mining import (
     CandidateDrafter,
@@ -47,5 +49,7 @@ __all__ = [
     "build_skill_drafting_prompt",
     "candidate_from_pattern",
     "find_repeated_successful_patterns",
+    "latest_revisions",
+    "learning_record_from_investigation",
     "reserve_later_held_out_cohort",
 ]
