@@ -32,6 +32,7 @@ from .judge import (
     DomainJudge,
     OutcomeLadder,
     ReferenceBuilder,
+    VerificationProjector,
     excluding_inapplicable_required_criteria,
     requiring_a_substantive_pass,
 )
@@ -59,7 +60,7 @@ from .outcomes import (
 )
 from .runs import AgentRun, AgentStep, RenderedKind, RenderedOutput
 from .scope import entity_named, name_forms, question_scope_check, scope_result, squash
-from .signature import SignatureRules, normalized_signature
+from .signature import SignatureNormalizer, SignatureRules, normalized_signature
 from .steps import RECOVERED_STEP_CODE, recovered_step_indexes, step_failed
 
 __all__ = [
@@ -91,9 +92,11 @@ __all__ = [
     "RenderedOutput",
     "RubricJudgment",
     "SHORTENED_LIST_NOTE",
+    "SignatureNormalizer",
     "SignatureRules",
     "StatedValue",
     "Tolerance",
+    "VerificationProjector",
     "all_criteria",
     "anchored_values",
     "asks_user_to_choose",

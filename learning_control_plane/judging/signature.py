@@ -14,9 +14,17 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol
 
 from .steps import RECOVERED_STEP_CODE
+
+
+class SignatureNormalizer(Protocol):
+    """Turn projected steps into the node names that make up a run's step signature."""
+
+    def __call__(self, steps: Sequence[Mapping[str, Any]]) -> Sequence[str]:
+        """Return the signature's node names for these projected steps."""
+        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,4 +73,4 @@ def _failed(step: Mapping[str, Any], failure_codes: frozenset[str]) -> bool:
     return False
 
 
-__all__ = ["SignatureRules", "normalized_signature"]
+__all__ = ["SignatureNormalizer", "SignatureRules", "normalized_signature"]

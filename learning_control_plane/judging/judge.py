@@ -86,6 +86,14 @@ class ReferenceBuilder(Protocol):
         ...
 
 
+class VerificationProjector(Protocol):
+    """Judge one run in-process and return only safe verification evidence."""
+
+    def __call__(self, run: AgentRun) -> InvestigationVerification:
+        """Return redacted checks without retaining the run's content."""
+        ...
+
+
 class OutcomeLadder:
     """Decide a run's verification: the outcomes that need no values first, then the domain, then meaning."""
 
@@ -243,6 +251,7 @@ __all__ = [
     "DomainJudge",
     "OutcomeLadder",
     "ReferenceBuilder",
+    "VerificationProjector",
     "excluding_inapplicable_required_criteria",
     "requiring_a_substantive_pass",
 ]

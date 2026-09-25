@@ -67,6 +67,7 @@ from .evaluation.verification import (
     VerificationCheck,
     score_final_answer,
 )
+from .integrations.generic import RunContext, RunPublication, RunPublisher, project_run
 from .integrations.penguiflow.projector import (
     InvestigationPublication,
     PenguiFlowInvestigationContext,
@@ -180,7 +181,10 @@ __all__ = [
     "ReviewQueueItem",
     "RevisionReceipt",
     "RubricCriterion",
+    "RunContext",
     "RunOne",
+    "RunPublication",
+    "RunPublisher",
     "SQLiteControlPlaneRepository",
     "SafeStepEvidence",
     "ScopedSkillActivationAdapter",
@@ -200,6 +204,7 @@ __all__ = [
     "compile_advisory_skill",
     "expand_parallel_steps",
     "find_repeated_successful_patterns",
+    "project_run",
     "reserve_later_held_out_cohort",
     "revise_verdict",
     "revised_investigation",

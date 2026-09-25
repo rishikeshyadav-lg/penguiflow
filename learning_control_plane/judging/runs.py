@@ -17,12 +17,13 @@ RenderedKind = Literal["table", "report"]
 
 @dataclass(frozen=True, slots=True)
 class AgentStep:
-    """One tool call: its name, arguments, result, and the error it raised, if any."""
+    """One tool call: its name, arguments, result, the error it raised, and whether it streamed output."""
 
     tool: str
     args: Mapping[str, Any] = field(default_factory=dict)
     result: Any = None
     error: str | None = None
+    streamed: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +49,8 @@ class AgentRun:
     rendered: Sequence[RenderedOutput] = ()
     classification: Mapping[str, Any] = field(default_factory=dict)
     finish_reason: str = "answer_complete"
+    # Non-text inputs (images, files) that came with the question; only their count is ever projected.
+    input_part_count: int = 0
 
 
 __all__ = ["AgentRun", "AgentStep", "RenderedKind", "RenderedOutput"]

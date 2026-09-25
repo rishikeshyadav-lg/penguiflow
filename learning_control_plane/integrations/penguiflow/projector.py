@@ -7,7 +7,6 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
-from hashlib import sha256
 from threading import Event, Thread
 from typing import Any, Protocol
 from uuid import uuid4
@@ -18,29 +17,30 @@ from penguiflow.skills.local_store import LocalSkillStore
 from penguiflow.skills.models import SkillDefinition, SkillScopeMode, SkillTaskType
 
 from ...contracts.evidence import EvidenceContext, EvidenceEvent, EvidenceSink
-from ...contracts.investigation import InvestigationStatus, InvestigationTrajectoryV1, SourceTraceRef
+from ...contracts.investigation import InvestigationTrajectoryV1, SourceTraceRef
 from ...control_plane.control_plane import ActivationReceipt, AdvisorySkillCandidate, DeliveryAuthorization
 from ...evaluation.evaluation import EvaluationCase, EvaluationVariant
 from ...evaluation.verification import InvestigationVerification
+from ...judging.runs import AgentRun, AgentStep, RenderedKind, RenderedOutput
+from ...judging.signature import SignatureNormalizer
 from ...providers.assessment_publisher import InvestigationAssessmentPublisher
 from ...providers.investigation_publisher import InvestigationPublisher
+from ..generic import RunContext, project_run
 
 logger = logging.getLogger("learning_control_plane.penguiflow")
 
 
-class SignatureNormalizer(Protocol):
-    """Turn projected steps into the node names that make up a run's step signature."""
-
-    def __call__(self, steps: Sequence[Mapping[str, Any]]) -> Sequence[str]:
-        """Return the signature's node names for these projected steps."""
-
-
-class VerificationProjector(Protocol):
+class TrajectoryVerificationProjector(Protocol):
     """Inspect a raw trajectory in-process and return only safe verification evidence."""
 
     def __call__(self, trajectory: Trajectory) -> InvestigationVerification:
         """Return redacted checks without retaining raw trajectory content."""
         ...
+
+
+# The name older integrations import; the generic, framework-neutral contract is judging.VerificationProjector.
+VerificationProjector = TrajectoryVerificationProjector
+_RENDERED_KIND_BY_TOOL: dict[str, RenderedKind] = {"render_table": "table", "render_report": "report"}
 
 
 def expand_parallel_steps(steps: Sequence[TrajectoryStep]) -> list[TrajectoryStep]:
@@ -97,6 +97,47 @@ def _step_from_call(call: Mapping[str, Any]) -> TrajectoryStep:
     )
 
 
+def agent_run_from_trajectory(trajectory: Trajectory) -> AgentRun:
+    """Express a PenguiFlow trajectory as a framework-neutral run, with rendered tables and reports.
+
+    A step that failed (an error message or a structured failure) carries an error; rendered
+    output is read from PenguiFlow's rich-output render tools.
+    """
+
+    steps = [
+        AgentStep(
+            tool=step.action.next_node,
+            args=dict(step.action.args),
+            result=step.observation,
+            error=_step_error(step),
+            streamed=bool(step.streams),
+        )
+        for step in trajectory.steps
+    ]
+    rendered = [
+        RenderedOutput(_RENDERED_KIND_BY_TOOL[step.action.next_node], step.action.args)
+        for step in trajectory.steps
+        if step.action.next_node in _RENDERED_KIND_BY_TOOL and isinstance(step.action.args, Mapping)
+    ]
+    final_answer = trajectory.final_answer
+    return AgentRun(
+        question=trajectory.query or "",
+        steps=steps,
+        final_answer=final_answer if isinstance(final_answer, str) or final_answer is None else str(final_answer),
+        rendered=rendered,
+        finish_reason=trajectory.finish_reason or "unknown",
+        input_part_count=len(trajectory.input_parts),
+    )
+
+
+def _step_error(step: TrajectoryStep) -> str | None:
+    if step.error:
+        return step.error
+    if step.failure:
+        return str(step.failure.get("message") or "failed")
+    return None
+
+
 @dataclass(frozen=True, slots=True)
 class TrajectoryProjection:
     """Metadata-only summary of a PenguiFlow trajectory for offline learning."""
@@ -120,7 +161,7 @@ class PenguiFlowInvestigationContext:
     redaction_profile: str = "penguiflow-investigation-safe:v1"
     allowed_node_names: frozenset[str] = frozenset()
     intent_descriptor: dict[str, str] | None = None
-    verification_projector: VerificationProjector | None = None
+    verification_projector: TrajectoryVerificationProjector | None = None
     # Optional integration-owned rule for which steps count toward the step signature (for example
     # leaving out failed probes and repeated lookups); without one every projected step counts.
     signature_normalizer: SignatureNormalizer | None = None
@@ -141,73 +182,25 @@ class PenguiFlowInvestigationProjector:
     ) -> InvestigationTrajectoryV1:
         """Create a document without copying content-bearing trajectory fields."""
 
-        steps = expand_parallel_steps(trajectory.steps)
-        verification = self._project_verification(replace(trajectory, steps=steps))
-        verification_by_index = {
-            evidence.step_index: evidence
-            for evidence in verification.step_evidence
-        } if verification is not None else {}
-        projected_steps: list[dict[str, Any]] = []
-        for index, step in enumerate(steps):
-            projected_step: dict[str, Any] = {
-                "index": index,
-                "node": self._safe_node_name(step.action.next_node),
-                "status": "failed" if step.error or step.failure else "completed",
-                "has_observation": step.observation is not None,
-                "has_streams": bool(step.streams),
-            }
-            step_evidence = verification_by_index.get(index)
-            if step_evidence is not None and step_evidence.node_name == projected_step["node"]:
-                projected_step.update(
-                    {
-                        "argument_facts": dict(step_evidence.argument_facts),
-                        "decision_reason_codes": list(step_evidence.decision_reason_codes),
-                        "result_checks": [check.record() for check in step_evidence.result_checks],
-                        "verified": step_evidence.verified,
-                    }
-                )
-            projected_steps.append(projected_step)
-        signature_nodes = (
-            list(self._context.signature_normalizer(projected_steps))
-            if self._context.signature_normalizer is not None
-            else [str(step["node"]) for step in projected_steps]
-        )
-        step_signature = ">".join(signature_nodes) or "no_steps"
-        finish_reason = trajectory.finish_reason or "unknown"
-        extensions: dict[str, Any] = {}
-        assessment_refs: tuple[str, ...] = ()
-        if verification is not None:
-            extensions["learning.verification"] = verification.record()
-            if verification.final_answer is not None:
-                assessment_refs = (verification.final_answer.assessment_ref,)
-
-        return InvestigationTrajectoryV1(
-            investigation_id=investigation_id or self._investigation_id(),
-            source_trace_ref=self._context.source_trace_ref,
-            agent_ref=self._context.agent_ref,
-            provider_ref=self._context.provider_ref,
-            scope_ref=self._context.scope_ref,
-            started_at=self._context.started_at,
+        expanded = replace(trajectory, steps=expand_parallel_steps(trajectory.steps))
+        context = self._context
+        return project_run(
+            agent_run_from_trajectory(expanded),
+            RunContext(
+                source_trace_ref=context.source_trace_ref,
+                agent_ref=context.agent_ref,
+                scope_ref=context.scope_ref,
+                execution_fingerprint=context.execution_fingerprint,
+                started_at=context.started_at,
+                provider_ref=context.provider_ref,
+                redaction_profile=context.redaction_profile,
+                allowed_node_names=context.allowed_node_names,
+                intent_descriptor=context.intent_descriptor,
+            ),
+            judge=lambda _: self._project_verification(expanded),
+            signature=context.signature_normalizer,
             completed_at=completed_at,
-            status=_investigation_status(finish_reason),
-            execution_fingerprint=self._context.execution_fingerprint,
-            request={
-                "has_text": bool(trajectory.query),
-                "input_part_count": len(trajectory.input_parts),
-            },
-            steps=projected_steps,
-            redaction_profile=self._context.redaction_profile,
-            step_signature=step_signature,
-            intent_descriptor=self._context.intent_descriptor,
-            execution_context={
-                "step_count": len(projected_steps),
-                "failed_step_count": sum(step["status"] == "failed" for step in projected_steps),
-                "has_final_answer": trajectory.final_answer is not None,
-                "verified_success": verification.verified_success if verification is not None else False,
-            },
-            termination_reason=_safe_termination_reason(finish_reason),
-            assessment_refs=assessment_refs,
-            extensions=extensions,
+            investigation_id=investigation_id,
         )
 
     def _project_verification(self, trajectory: Trajectory) -> InvestigationVerification | None:
@@ -219,24 +212,6 @@ class PenguiFlowInvestigationProjector:
         except Exception:
             logger.warning("PenguiFlow trajectory verification projection failed", exc_info=True)
             return None
-
-    def _investigation_id(self) -> str:
-        source_trace_ref = self._context.source_trace_ref
-        identity = ":".join(
-            (
-                source_trace_ref.tracking_store_ref,
-                source_trace_ref.experiment_id,
-                source_trace_ref.mlflow_trace_id,
-            )
-        )
-        return f"investigation_{sha256(identity.encode()).hexdigest()[:24]}"
-
-    def _safe_node_name(self, value: str) -> str:
-        """Keep only node names explicitly declared safe by the integration."""
-
-        if value in self._context.allowed_node_names:
-            return value
-        return "redacted_node"
 
 
 @dataclass(slots=True)
@@ -491,38 +466,6 @@ def _scoped_skill_name(name: str | None, scope_ref: str) -> str:
     return f"{name}.{_slug(scope_ref)}"
 
 
-def _investigation_status(finish_reason: str) -> InvestigationStatus:
-    """Map PenguiFlow's terminal reason to the portable investigation status."""
-
-    statuses: dict[str, InvestigationStatus] = {
-        "answer_complete": "completed",
-        "budget_exhausted": "timed_out",
-        "cancelled": "cancelled",
-        "pause": "interrupted",
-        "paused": "interrupted",
-        "interrupted": "interrupted",
-        "no_path": "failed",
-    }
-    return statuses.get(finish_reason, "unknown")
-
-
-def _safe_termination_reason(value: str) -> str:
-    """Keep only known terminal reason labels from a native trajectory."""
-
-    allowed = {
-        "answer_complete",
-        "budget_exhausted",
-        "cancelled",
-        "pause",
-        "paused",
-        "interrupted",
-        "no_path",
-    }
-    if value in allowed:
-        return value
-    return "unknown"
-
-
 def _slug(value: str) -> str:
     """Return a stable identifier fragment accepted by the skills store."""
 
@@ -531,6 +474,10 @@ def _slug(value: str) -> str:
 
 __all__ = [
     "PenguiFlowEvaluationRunner",
+    "SignatureNormalizer",
+    "TrajectoryVerificationProjector",
+    "VerificationProjector",
+    "agent_run_from_trajectory",
     "PenguiFlowInvestigationContext",
     "InvestigationPublication",
     "PenguiFlowInvestigationProjector",
