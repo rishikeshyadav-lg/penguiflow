@@ -43,6 +43,8 @@ _PROSE_DISTANCE = 24
 _GENERIC_VALUE_HEADERS = frozenset({"", "value", "values", "total", "totals", "overall", "total / overall", "amount"})
 _NAME_PREFIX = re.compile(r"^\s*(?:[-*]\s+|\d+[.)]\s+)?\**(?P<name>[^:|*]{2,80}?)\**\s*[:–—]\s+")
 _TOTAL_LABEL = re.compile(r"\b(total|overall|all|grand total|campaign total|sum)\b", re.IGNORECASE)
+# A leading "#" or "Rank" column numbers the rows; the row's name is in the next non-metric column.
+_RANK_HEADERS = frozenset({"#", "rank", "no", "no.", "n", "index", "position", "pos"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,7 +183,14 @@ def _values_in_table(
     values: list[StatedValue] = []
     if any(column_metrics):
         # Wide table: one row per group, one column per metric.
-        label_column = next((index for index, metric in enumerate(column_metrics) if metric is None), None)
+        label_column = next(
+            (
+                index
+                for index, metric in enumerate(column_metrics)
+                if metric is None and not _is_rank_header(header[index])
+            ),
+            None,
+        )
         for row in data:
             label = _clean(row[label_column]) if label_column is not None and label_column < len(row) else heading
             for index, metric in enumerate(column_metrics):
@@ -284,7 +293,19 @@ def _values_in_rendered_table(content: Mapping[str, Any], vocabulary: MetricVoca
         if metric is None and not _QUALIFIERS.search(header):
             metric = metric_named(field_name, vocabulary)
         named.append((field_name, metric))
-    label_field = next((field_name for field_name, metric in named if metric is None), None)
+    headers = {
+        str(column.get("field") or ""): str(column.get("header") or column.get("field") or "")
+        for column in columns
+        if isinstance(column, Mapping)
+    }
+    label_field = next(
+        (
+            field_name
+            for field_name, metric in named
+            if metric is None and not _is_rank_header(headers.get(field_name, "")) and not _is_rank_header(field_name)
+        ),
+        None,
+    )
     values: list[StatedValue] = []
     for row in rows:
         if not isinstance(row, Mapping):
@@ -355,6 +376,12 @@ def _parsed(
     if magnitude:
         return [value(number * _MAGNITUDES[magnitude.casefold()], abbreviated=True)]
     return [value(number), value(number / 100)] if is_rate else [value(number)]
+
+
+def _is_rank_header(header: str) -> bool:
+    """Return whether a column only numbers the rows ("#", "Rank") rather than naming them."""
+
+    return _clean(header).casefold() in _RANK_HEADERS
 
 
 def _is_row_label(label: str) -> bool:

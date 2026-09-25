@@ -21,10 +21,16 @@ BENCHMARK_WORDING = re.compile(
     r"|industry(?:[- ]wide)? (?:average|benchmarks?|standards?|norms?)"
     r"|(?:standard|typical|industry) benchmarks?"
     r"|(?:above|below|in line with|consistent with|within) (?:the )?(?:typical|standard|industry|expected)(?: \w+)? "
-    r"(?:range|benchmarks?|thresholds?|levels?|averages?))\b",
+    r"(?:range|benchmarks?|thresholds?|levels?|averages?)"
+    r"|(?:above|below|in line with|consistent with|within|exceed(?:s|ed|ing)?) "
+    r"(?:the )?(?:\w+ )?(?:norms?|benchmarks?))\b",
     re.IGNORECASE,
 )
 _SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+|\n+")
+# "Verify the budget is on track" asks for a check; the wording after it is not a verdict.
+CHECK_REQUEST_BEFORE = re.compile(
+    r"\b(?:verify|confirm|check|ensure|make sure|monitor|see|whether|if)\b[^.!?\n]*$", re.IGNORECASE
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,4 +57,24 @@ def states_unsupported_benchmark(run: AgentRun, rule: BenchmarkClaimRule) -> boo
     )
 
 
-__all__ = ["BENCHMARK_WORDING", "BenchmarkClaimRule", "UNSUPPORTED_BENCHMARK_CLAIM", "states_unsupported_benchmark"]
+def states_as_fact(answer: str, claim: re.Pattern[str]) -> bool:
+    """Return whether the answer states a claim as fact, rather than asking for it to be checked.
+
+    A match counts unless the same sentence, before it, asks the user to verify, check or monitor.
+    """
+
+    for match in claim.finditer(answer):
+        sentence_so_far = re.split(r"[.!?\n]", answer[: match.start()])[-1]
+        if not CHECK_REQUEST_BEFORE.search(sentence_so_far):
+            return True
+    return False
+
+
+__all__ = [
+    "BENCHMARK_WORDING",
+    "BenchmarkClaimRule",
+    "CHECK_REQUEST_BEFORE",
+    "UNSUPPORTED_BENCHMARK_CLAIM",
+    "states_as_fact",
+    "states_unsupported_benchmark",
+]

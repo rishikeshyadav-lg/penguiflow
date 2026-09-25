@@ -30,7 +30,8 @@ from .steps import step_failed
 # An answer saying the scope has no data; figures it adds (other entities as suggestions) are not
 # claims about the scope.
 NO_DATA_PHRASES = re.compile(
-    r"\b(not found|no data|no records|no rows|no match(?:es|ing)?|not available|does not appear|doesn't appear|"
+    r"\b(not found|no data|no records|no rows|no match(?:es|ing)?|not available|came up empty|"
+    r"no \w+ (?:matching|containing|named|called)|does not appear|doesn't appear|"
     r"(unable|could not|couldn't|was unable) to (find|locate)|returns? (zero|no) (results|rows))\b",
     re.IGNORECASE,
 )
@@ -83,11 +84,27 @@ class EmptyLookupRule:
     the judge's own reference, when there is one, found rows.
     """
 
+    def whole_name_lookups(self, lookups: Sequence[AgentStep]) -> list[AgentStep]:
+        """Return the lookups that searched for a whole name, not for part of another search's term."""
+
+        if self.lookup_terms is None:
+            return list(lookups)
+        searched = [self.lookup_terms(step) for step in lookups]
+        every_term = set().union(*searched)
+        return [
+            step
+            for step, terms in zip(lookups, searched, strict=True)
+            if not terms or not all(any(term != other and term in other for other in every_term) for term in terms)
+        ]
+
     is_scoped_lookup: Callable[[AgentStep], bool]
     returned_nothing: Callable[[AgentStep], bool]
     vocabulary: MetricVocabulary
     reference_found_data: Callable[[Any], bool] = bool
     phrases: re.Pattern[str] = NO_DATA_PHRASES
+    # The terms a lookup searched for; when given, a search for part of another search's term is a
+    # fallback (it may find other entities to suggest) and need not come back empty.
+    lookup_terms: Callable[[AgentStep], set[str]] | None = None
 
 
 def no_data_confirmed_by_empty_lookups(
@@ -111,7 +128,8 @@ def no_data_confirmed_by_empty_lookups(
     if any(value.explicit and value.value == 0 for value in stated_values(answer, rule.vocabulary)):
         return False
     scoped_lookups = [step for step in run.steps if rule.is_scoped_lookup(step) and not step_failed(step)]
-    return bool(scoped_lookups) and all(rule.returned_nothing(step) for step in scoped_lookups)
+    whole_name_lookups = rule.whole_name_lookups(scoped_lookups)
+    return bool(whole_name_lookups) and all(rule.returned_nothing(step) for step in whole_name_lookups)
 
 
 def nothing_fetched_judgment() -> RubricJudgment:

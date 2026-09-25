@@ -10,13 +10,17 @@ from judging_fixtures import INVENTORY_VOCABULARY
 
 from learning_control_plane.evaluation.verification import SafeStepEvidence, VerificationCheck
 from learning_control_plane.judging import (
+    NO_DATA_PHRASES,
     AgentRun,
     AgentStep,
     BenchmarkClaimRule,
     EmptyLookupRule,
     OutcomeLadder,
+    RenderedOutput,
     RubricJudgment,
     no_data_confirmed_by_empty_lookups,
+    stated_values,
+    states_as_fact,
     states_unsupported_benchmark,
 )
 
@@ -130,3 +134,56 @@ def test_a_benchmark_tool_that_returned_nothing_does_not_support_the_comparison(
     run = _run("Sell-through is above the industry average.", benchmarks)
 
     assert states_unsupported_benchmark(run, BENCHMARKS)
+
+
+def test_a_rank_column_is_not_taken_for_a_markdown_rows_name() -> None:
+    answer = "| # | Store | Units |\n|---|---|---|\n| 1 | North | 1,452 |\n| 2 | South | 306 |\n"
+
+    values = {(value.label, value.value) for value in stated_values(answer, INVENTORY_VOCABULARY)}
+
+    assert values == {("North", 1452.0), ("South", 306.0)}
+
+
+def test_a_rank_column_is_not_taken_for_a_rendered_rows_name() -> None:
+    table = RenderedOutput(
+        "table",
+        {
+            "columns": [{"field": "rank", "header": "Rank"}, {"field": "store"}, {"field": "units"}],
+            "rows": [{"rank": 1, "store": "North", "units": 5}],
+        },
+    )
+
+    values = stated_values("", INVENTORY_VOCABULARY, [table])
+
+    assert [(value.label, value.value) for value in values] == [("North", 5.0)]
+
+
+def test_a_search_for_part_of_a_name_may_find_others_to_suggest() -> None:
+    rule = EmptyLookupRule(
+        is_scoped_lookup=EMPTY_LOOKUPS.is_scoped_lookup,
+        returned_nothing=EMPTY_LOOKUPS.returned_nothing,
+        vocabulary=INVENTORY_VOCABULARY,
+        lookup_terms=lambda step: {str(item["store"]).casefold() for item in step.args.get("filters", ())},
+    )
+    whole = AgentStep("query_stock", {"filters": [{"store": "North_Outlet_2026"}]}, {"rows": []})
+    part = AgentStep("list_stores", {"filters": [{"store": "North"}]}, {"rows": [{"store": "North Store"}]})
+    run = _run("No store matching North_Outlet_2026 came up empty; did you mean North Store?", whole, part)
+
+    assert no_data_confirmed_by_empty_lookups(run, rule, reference=None, findings=())
+    assert not no_data_confirmed_by_empty_lookups(run, EMPTY_LOOKUPS, reference=None, findings=())
+
+
+def test_new_no_data_wording_is_recognised() -> None:
+    assert NO_DATA_PHRASES.search("The search came up empty.")
+    assert NO_DATA_PHRASES.search("There is no store named Zeta.")
+
+
+def test_a_claim_after_a_request_to_check_is_not_stated_as_fact() -> None:
+    on_track = re.compile(r"\bis on track\b")
+
+    assert not states_as_fact("Please verify the restock is on track.", on_track)
+    assert states_as_fact("The restock is on track. Please verify it.", on_track)
+
+
+def test_exceeding_the_norms_is_benchmark_wording() -> None:
+    assert states_unsupported_benchmark(_run("Sell-through exceeds seasonal norms."), BENCHMARKS)

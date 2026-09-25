@@ -15,7 +15,13 @@ from .answer_text import (
     shown_to_user,
     strip_shortened_list_note,
 )
-from .claims import BENCHMARK_WORDING, UNSUPPORTED_BENCHMARK_CLAIM, BenchmarkClaimRule, states_unsupported_benchmark
+from .claims import (
+    BENCHMARK_WORDING,
+    UNSUPPORTED_BENCHMARK_CLAIM,
+    BenchmarkClaimRule,
+    states_as_fact,
+    states_unsupported_benchmark,
+)
 from .classification import ClassificationRead, freeze_classification, majority, mining_skip_reason
 from .expectations import (
     OVERALL,
@@ -140,6 +146,7 @@ __all__ = [
     "scope_result",
     "shown_to_user",
     "squash",
+    "states_as_fact",
     "stated_values",
     "states_unsupported_benchmark",
     "step_failed",
