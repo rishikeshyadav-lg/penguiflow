@@ -14,6 +14,9 @@ VERIFICATION_SCHEMA_VERSION = "learning_verification.v1"
 FINAL_ANSWER_RUBRIC_VERSION = "final_answer_accuracy.v1"
 
 CheckStatus = Literal["passed", "partial", "failed", "not_applicable"]
+# What a judge concluded about a run as a whole; see learning_control_plane.judging.outcomes.
+JudgeOutcome = Literal["verified", "failed", "handled_correctly", "agent_error", "not_judgeable"]
+JUDGE_OUTCOMES: tuple[JudgeOutcome, ...] = ("verified", "failed", "handled_correctly", "agent_error", "not_judgeable")
 _STATUS_SCORES: dict[CheckStatus, float | None] = {
     "passed": 1.0,
     "partial": 0.5,
@@ -326,10 +329,14 @@ class InvestigationVerification:
     step_evidence: Sequence[SafeStepEvidence]
     final_answer: FinalAnswerAssessment | None = None
     policy_compliance: VerificationCheck | None = None
+    # Optional judge conclusion; written to the record only when set, so older records are unchanged.
+    outcome: JudgeOutcome | None = None
     schema_version: str = field(default=VERIFICATION_SCHEMA_VERSION, init=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "step_evidence", tuple(self.step_evidence))
+        if self.outcome is not None and self.outcome not in JUDGE_OUTCOMES:
+            raise ValueError(f"unsupported judge outcome: {self.outcome!r}")
 
     @property
     def verified_success(self) -> bool:
@@ -354,6 +361,8 @@ class InvestigationVerification:
             record["assessment_ref"] = self.final_answer.assessment_ref
         if self.policy_compliance is not None:
             record["policy_compliance"] = self.policy_compliance.record()
+        if self.outcome is not None:
+            record["outcome"] = self.outcome
         return record
 
 
@@ -394,6 +403,8 @@ __all__ = [
     "FinalAnswerAssessment",
     "FinalAnswerRubricV1",
     "InvestigationVerification",
+    "JUDGE_OUTCOMES",
+    "JudgeOutcome",
     "RubricCriterion",
     "SafeStepEvidence",
     "VERIFICATION_SCHEMA_VERSION",
