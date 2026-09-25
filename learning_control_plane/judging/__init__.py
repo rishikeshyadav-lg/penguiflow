@@ -19,6 +19,8 @@ from .claims import (
     BENCHMARK_WORDING,
     UNSUPPORTED_BENCHMARK_CLAIM,
     BenchmarkClaimRule,
+    benchmark_figures_are_the_users,
+    question_supplies_benchmarks,
     states_as_fact,
     states_unsupported_benchmark,
 )
@@ -84,7 +86,7 @@ from .outcomes import (
     outcome_reason_codes,
 )
 from .runs import AgentRun, AgentStep, RenderedKind, RenderedOutput
-from .scope import entity_named, name_forms, question_scope_check, scope_result, squash
+from .scope import entity_named, name_forms, question_scope_check, scope_result, squash, words_on_one_line
 from .signature import SignatureNormalizer, SignatureRules, normalized_signature
 from .steps import RECOVERED_STEP_CODE, recovered_step_indexes, step_failed
 
@@ -137,6 +139,7 @@ __all__ = [
     "all_criteria",
     "anchored_values",
     "asks_user_to_choose",
+    "benchmark_figures_are_the_users",
     "entity_named",
     "excluding_inapplicable_required_criteria",
     "freeze_classification",
@@ -157,6 +160,7 @@ __all__ = [
     "outcome_of",
     "outcome_reason_codes",
     "question_scope_check",
+    "question_supplies_benchmarks",
     "recovered_step_indexes",
     "rendered_text",
     "requiring_a_substantive_pass",
@@ -173,4 +177,5 @@ __all__ = [
     "tool_evidence",
     "values_in_text",
     "verification_policy",
+    "words_on_one_line",
 ]

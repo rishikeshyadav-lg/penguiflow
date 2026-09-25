@@ -33,6 +33,7 @@ from ..evaluation.verification import (
     score_final_answer,
 )
 from .answer_text import asks_user_to_choose, looks_truncated, shown_to_user
+from .claims import benchmark_figures_are_the_users
 from .expectations import RubricJudgment
 from .meaning import MeaningCheck
 from .no_data import FINDINGS_ANSWERED_BY_NO_DATA, EmptyLookupRule, no_data_confirmed_by_empty_lookups
@@ -167,6 +168,9 @@ class OutcomeLadder:
             return self._settled(outcome_rubric, "not_applicable", "no_domain_judgment", "category_not_verifiable")
         if findings is None:
             findings = self._meaning_codes(run)
+        if "invented_figure" in findings and benchmark_figures_are_the_users(run.question, answer):
+            # Benchmarks the user supplied are not invented, whatever the meaning check read.
+            findings = [code for code in findings if code != "invented_figure"]
         if "no_data_confirmed" in judgment.hard_failures:
             findings = [code for code in findings if code not in FINDINGS_ANSWERED_BY_NO_DATA]
 

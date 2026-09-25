@@ -18,10 +18,14 @@ from learning_control_plane.judging import (
     OutcomeLadder,
     RenderedOutput,
     RubricJudgment,
+    benchmark_figures_are_the_users,
     no_data_confirmed_by_empty_lookups,
+    question_scope_check,
+    question_supplies_benchmarks,
     stated_values,
     states_as_fact,
     states_unsupported_benchmark,
+    words_on_one_line,
 )
 
 EMPTY_LOOKUPS = EmptyLookupRule(
@@ -187,3 +191,62 @@ def test_a_claim_after_a_request_to_check_is_not_stated_as_fact() -> None:
 
 def test_exceeding_the_norms_is_benchmark_wording() -> None:
     assert states_unsupported_benchmark(_run("Sell-through exceeds seasonal norms."), BENCHMARKS)
+
+
+def test_a_multi_word_name_counts_when_its_words_share_one_line() -> None:
+    shown = "| Acme Insurance FY26 CTV AUTO Campaign | 1,200 |\n| Other | 5 |"
+
+    assert words_on_one_line(shown, "Acme CTV Auto")
+    assert not words_on_one_line("Acme Insurance\nCTV Auto", "Acme CTV Auto")
+    assert not words_on_one_line(shown, "Acme")
+
+
+def test_scope_accepts_words_on_one_line_only_when_asked_to() -> None:
+    shown = "Acme Insurance FY26 CTV AUTO Campaign sold 1,200 units."
+
+    assert (
+        question_scope_check(shown, question_terms=["Acme CTV Auto"], match_words_on_one_line=True).status == "passed"
+    )
+    assert question_scope_check(shown, question_terms=["Acme CTV Auto"]).status == "failed"
+
+
+def test_benchmarks_the_user_supplied_are_not_unsupported() -> None:
+    run = AgentRun(
+        question="Our benchmark sell-through is 40%. How did North do?",
+        steps=(),
+        final_answer="Sell-through is 42%. That is above your benchmark of 40%.",
+    )
+
+    assert question_supplies_benchmarks(run.question)
+    assert benchmark_figures_are_the_users(run.question, run.final_answer or "")
+    assert not states_unsupported_benchmark(run, BENCHMARKS)
+
+
+def test_a_benchmark_figure_the_user_did_not_give_is_not_theirs() -> None:
+    assert not benchmark_figures_are_the_users(
+        "Our benchmark sell-through is 40%.", "The benchmark is really 55%, so 42% is low."
+    )
+    assert not benchmark_figures_are_the_users("How did North do?", "Above the 40% benchmark.")
+
+
+def test_the_ladder_drops_an_invented_figure_finding_for_the_users_own_benchmark() -> None:
+    passed = RubricJudgment(
+        numerical=VerificationCheck("factual_numerical_correctness", "passed", ("stated_values_match_reference",)),
+        completeness=VerificationCheck("completeness", "passed", ("all_required_values_stated",)),
+        scope=VerificationCheck("scope_correctness", "passed", ("requested_scope_present",)),
+        grounding=VerificationCheck("evidence_grounding", "passed", ("values_match_independent_reference",)),
+    )
+
+    class _Judges(_NeverJudges):
+        def judge(self, run: AgentRun, reference: Any) -> RubricJudgment | None:
+            return passed
+
+    run = AgentRun(
+        question="Our benchmark sell-through is 40%. How did North do?",
+        steps=(AgentStep("query_stock", {}, {"rows": [1]}),),
+        final_answer="North's sell-through is 42%. That is above your benchmark of 40%.",
+    )
+
+    verification = OutcomeLadder(_Judges()).judge(run, meaning_findings=("invented_figure",))
+
+    assert verification.outcome == "verified"

@@ -27,6 +27,7 @@ BENCHMARK_WORDING = re.compile(
     re.IGNORECASE,
 )
 _SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+|\n+")
+_PERCENT_FIGURE = re.compile(r"\d+(?:\.\d+)?\s*%")
 # "Verify the budget is on track" asks for a check; the wording after it is not a verdict.
 CHECK_REQUEST_BEFORE = re.compile(
     r"\b(?:verify|confirm|check|ensure|make sure|monitor|see|whether|if)\b[^.!?\n]*$", re.IGNORECASE
@@ -42,9 +43,35 @@ class BenchmarkClaimRule:
     wording: re.Pattern[str] = BENCHMARK_WORDING
 
 
-def states_unsupported_benchmark(run: AgentRun, rule: BenchmarkClaimRule) -> bool:
-    """Return whether a sentence compares a metric with a typical or standard level no benchmark tool returned."""
+def question_supplies_benchmarks(question: str) -> bool:
+    """Return whether the user gave benchmark figures in the question ("benchmarks are 0.08% for CTR")."""
 
+    return "benchmark" in question.casefold() and bool(_PERCENT_FIGURE.search(question))
+
+
+def benchmark_figures_are_the_users(question: str, answer: str) -> bool:
+    """Return whether every percentage the answer states beside "benchmark" is one the user gave."""
+
+    if not question_supplies_benchmarks(question):
+        return False
+    given = {float(number) for number in re.findall(r"\d+(?:\.\d+)?", question)}
+    stated = [
+        float(number)
+        for sentence in _SENTENCE_BREAK.split(answer)
+        if "benchmark" in sentence.casefold()
+        for number in re.findall(r"\d+(?:\.\d+)?(?=\s*%)", sentence)
+    ]
+    return all(number in given for number in stated)
+
+
+def states_unsupported_benchmark(run: AgentRun, rule: BenchmarkClaimRule) -> bool:
+    """Return whether a sentence compares a metric with a typical or standard level nobody supplied.
+
+    Benchmarks are supplied by a benchmark tool that returned rows, or by the user in the question.
+    """
+
+    if question_supplies_benchmarks(run.question):
+        return False
     has_benchmark_data = any(
         step.tool in rule.benchmark_tools and isinstance(step.result, Mapping) and step.result.get("rows")
         for step in run.steps
@@ -75,6 +102,8 @@ __all__ = [
     "BenchmarkClaimRule",
     "CHECK_REQUEST_BEFORE",
     "UNSUPPORTED_BENCHMARK_CLAIM",
+    "benchmark_figures_are_the_users",
+    "question_supplies_benchmarks",
     "states_as_fact",
     "states_unsupported_benchmark",
 ]

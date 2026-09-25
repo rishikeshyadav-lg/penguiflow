@@ -42,6 +42,22 @@ def entity_named(text: str, name: str, *, suffix_patterns: Sequence[re.Pattern[s
     return any(form in squashed_text for form in name_forms(name, suffix_patterns=suffix_patterns))
 
 
+def words_on_one_line(text: str, name: str) -> bool:
+    """Return whether every word of a multi-word name appears on one line of the text.
+
+    "Acme CTV Auto" is named by a table row "Acme Insurance FY26 CTV AUTO Campaign", whose words
+    are the same but not adjacent.
+    """
+
+    words = [squash(word) for word in name.split()]
+    words = [word for word in words if word]
+    if len(words) < 2:
+        return False
+    return any(
+        all(re.search(rf"\b{re.escape(word)}\b", line.casefold()) for word in words) for line in text.splitlines()
+    )
+
+
 def scope_result(named: bool) -> VerificationCheck:
     """Return the scope check for an answer that does or does not name the requested scope."""
 
@@ -56,16 +72,24 @@ def question_scope_check(
     question_terms: Sequence[str],
     fallback_terms: Sequence[str] = (),
     suffix_patterns: Sequence[re.Pattern[str]] = (),
+    match_words_on_one_line: bool = False,
 ) -> VerificationCheck:
     """Check the answer names what the question named; the agent's own filters stand in only when it named nothing.
 
     `shown` is everything the user saw (see `answer_text.shown_to_user`). `question_terms` are the
     identifiers and names read from the question itself; any one of them is enough. `fallback_terms`
-    are the entities the agent filtered on; each of them must be named.
+    are the entities the agent filtered on; each of them must be named. With `match_words_on_one_line`
+    a multi-word question term also counts when all its words are on one line of what was shown.
     """
 
     if question_terms:
-        return scope_result(any(entity_named(shown, term, suffix_patterns=suffix_patterns) for term in question_terms))
+        return scope_result(
+            any(
+                entity_named(shown, term, suffix_patterns=suffix_patterns)
+                or (match_words_on_one_line and words_on_one_line(shown, term))
+                for term in question_terms
+            )
+        )
     if not fallback_terms:
         return VerificationCheck("scope_correctness", "not_applicable", ("no_explicit_scope_term",))
     return scope_result(all(entity_named(shown, term, suffix_patterns=suffix_patterns) for term in fallback_terms))
@@ -77,4 +101,5 @@ __all__ = [
     "question_scope_check",
     "scope_result",
     "squash",
+    "words_on_one_line",
 ]
