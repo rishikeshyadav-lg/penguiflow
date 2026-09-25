@@ -416,8 +416,10 @@ def test_real_mlflow_readiness_sees_a_closed_trace_and_not_an_unknown_one(tmp_pa
     try:
         mlflow.set_tracking_uri(f"sqlite:///{tmp_path / 'mlflow.db'}")
         experiment_id = mlflow.create_experiment("lcp-readiness-test", artifact_location=(tmp_path / "a").as_uri())
-        mlflow.set_experiment(experiment_id=experiment_id)
-        with mlflow.start_span(name="agent.turn"):
+        from mlflow.tracing.destination import MlflowExperimentLocation
+
+        # An explicit destination, not set_experiment, so no active experiment leaks into other tests.
+        with mlflow.start_span(name="agent.turn", trace_destination=MlflowExperimentLocation(experiment_id)):
             trace_id = mlflow.get_active_trace_id()
         mlflow.flush_trace_async_logging()
         readiness = MlflowTraceReadiness(poll_interval_s=0.05)
