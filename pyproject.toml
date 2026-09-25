@@ -114,6 +114,8 @@ pydantic-ai = [
     "pydantic-ai-slim[openai,openrouter]>=1.107.0,<2",
     "genai-prices>=0.0.66,<1",
 ]
+# TypeSafe (Jev) as the learning control plane's meaning judge; imported lazily, never at load.
+lcp-typesafe = ["typesafe-sdk>=0.7.1"]
 
 [project.scripts]
 penguiflow-admin = "penguiflow.admin:main"
@@ -224,6 +226,10 @@ show_error_codes = true
 # that use PEP 695 `type` statements, which mypy rejects under our 3.11 target
 # (`requires-python >= 3.11`). We never import numpy directly, so skip following
 # imports into it rather than dropping 3.11 type-checking of our own code.
+[[tool.mypy.overrides]]
+module = "typesafe_sdk.*"
+ignore_missing_imports = true
+
 [[tool.mypy.overrides]]
 module = "numpy.*"
 follow_imports = "skip"
