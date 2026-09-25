@@ -30,7 +30,7 @@ _NAME_PIECE_SEPARATOR = re.compile(r"\s+[-–—]\s+")
 class Tolerance(Protocol):
     """Decide whether a stated value is close enough to the expected one that a reader would not act differently."""
 
-    def __call__(self, metric: str, stated: float, expected: float, *, abbreviated: bool = False) -> bool:
+    def __call__(self, metric: str, stated: float, expected: float, /, *, abbreviated: bool = False) -> bool:
         """Return whether `stated` matches `expected` for this metric."""
         ...
 
