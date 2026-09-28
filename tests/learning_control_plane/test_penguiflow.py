@@ -14,6 +14,7 @@ from learning_control_plane.evaluation import EvaluationCase, EvaluationVariant
 from learning_control_plane.evaluation.verification import InvestigationVerification, SafeStepEvidence
 from learning_control_plane.integrations.penguiflow.projector import (
     PenguiFlowEvaluationRunner,
+    PenguiFlowFrameworkAdapter,
     PenguiFlowInvestigationContext,
     PenguiFlowInvestigationProjector,
     PenguiFlowInvestigationPublicationHook,
@@ -23,7 +24,9 @@ from learning_control_plane.integrations.penguiflow.projector import (
     compile_advisory_skill,
     expand_parallel_steps,
     project_trajectory,
+    to_generic_trajectory,
 )
+from learning_control_plane.integrations.protocol import FrameworkAdapter
 from penguiflow.planner.models import PlannerAction
 from penguiflow.planner.trajectory import Trajectory, TrajectoryStep
 from penguiflow.skills.local_store import LocalSkillStore
@@ -484,3 +487,111 @@ def test_a_normalizer_that_keeps_nothing_gives_the_no_steps_signature() -> None:
     )
 
     assert document.step_signature == "no_steps"
+
+
+# --- generic trajectory (framework-agnostic contract) -----------------------
+
+
+def test_to_generic_trajectory_carries_the_query_answer_and_steps() -> None:
+    trajectory = Trajectory(
+        query="how many clicks",
+        steps=[
+            TrajectoryStep(
+                action=PlannerAction(next_node="aggregate_report", args={"metrics": ["clicks"]}),
+                observation={"overall": {"clicks": 10}},
+            )
+        ],
+        final_answer="10 clicks",
+        finish_reason="answer_complete",
+        llm_context={"answer_rubric": {"category": "summary"}},
+    )
+
+    generic = to_generic_trajectory(trajectory)
+
+    assert generic.query == "how many clicks"
+    assert generic.final_answer == "10 clicks"
+    assert generic.llm_context == {"answer_rubric": {"category": "summary"}}
+    assert len(generic.steps) == 1
+    assert generic.steps[0].tool == "aggregate_report"
+    assert generic.steps[0].args == {"metrics": ["clicks"]}
+    assert generic.steps[0].observation == {"overall": {"clicks": 10}}
+    assert generic.steps[0].error is None
+
+
+def test_to_generic_trajectory_expands_parallel_steps_like_the_projector_does() -> None:
+    trajectory = Trajectory(
+        query="q",
+        steps=[
+            _parallel_step(
+                [
+                    {"node": "search_docs", "args": {"q": "a"}, "observation": {"hits": 1}},
+                    {"node": "read_doc", "args": {}, "error": "boom", "failure": {"code": "x"}},
+                ]
+            )
+        ],
+    )
+
+    generic = to_generic_trajectory(trajectory)
+
+    assert [step.tool for step in generic.steps] == ["search_docs", "read_doc"]
+    assert generic.steps[1].error == "boom"
+    assert generic.steps[1].failure == {"code": "x"}
+
+
+# --- the framework adapter protocol -----------------------------------------
+
+
+def test_the_penguiflow_adapter_satisfies_the_framework_adapter_protocol(tmp_path: Path) -> None:
+    adapter = PenguiFlowFrameworkAdapter(
+        PenguiFlowInvestigationProjector(_investigation_context()),
+        LocalSkillStore(db_path=str(tmp_path / "skills.db")),
+    )
+
+    assert isinstance(adapter, FrameworkAdapter)
+
+
+def test_the_penguiflow_adapter_projects_translates_and_delivers(tmp_path: Path) -> None:
+    adapter = PenguiFlowFrameworkAdapter(
+        PenguiFlowInvestigationProjector(_investigation_context()),
+        LocalSkillStore(db_path=str(tmp_path / "skills.db")),
+    )
+    trajectory = Trajectory(query="q", final_answer="a", finish_reason="answer_complete")
+
+    generic = adapter.to_generic_trajectory(trajectory)
+    document = adapter.project(trajectory)
+
+    assert generic.query == "q" and generic.final_answer == "a"
+    assert document.agent_ref == "planner_enterprise_agent_v2"
+
+    candidate = AdvisorySkillCandidate(candidate_id="c-1", advisory_skill="Say totals plainly.")
+    authorization = DeliveryAuthorization(
+        authorization_id="auth-1",
+        job_id="job-1",
+        candidate_id="c-1",
+        scope_ref="tenant:acme",
+        authorized_by="owner@example.com",
+        expires_at=datetime.now(UTC) + timedelta(days=1),
+    )
+    receipt = adapter.deliver(authorization, candidate)
+    assert receipt.candidate_id == "c-1" and receipt.provider_ref.startswith("penguiflow.skills:")
+
+
+@pytest.mark.asyncio
+async def test_attach_guidance_matches_by_category_and_ignores_other_turns() -> None:
+    adapter = PenguiFlowFrameworkAdapter(
+        PenguiFlowInvestigationProjector(_investigation_context()),
+        LocalSkillStore(db_path=":memory:"),
+    )
+    hook = adapter.attach_guidance(guidance="State totals plainly.", categories=("summary",))
+
+    class _Input:
+        tool_context = {"question_category": "summary"}
+
+    class _OtherInput:
+        tool_context = {"question_category": "ranking"}
+
+    matching = await hook.before_run(_Input())
+    other = await hook.before_run(_OtherInput())
+
+    assert matching == {"advisory_guidance": "State totals plainly."}
+    assert other is None

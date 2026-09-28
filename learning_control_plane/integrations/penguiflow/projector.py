@@ -19,6 +19,7 @@ from penguiflow.skills.models import SkillDefinition, SkillScopeMode, SkillTaskT
 
 from ...contracts.evidence import EvidenceContext, EvidenceEvent, EvidenceSink
 from ...contracts.investigation import InvestigationStatus, InvestigationTrajectoryV1, SourceTraceRef
+from ...contracts.steps import GenericStep, GenericTrajectory
 from ...control_plane.control_plane import ActivationReceipt, AdvisorySkillCandidate, DeliveryAuthorization
 from ...evaluation.evaluation import EvaluationCase, EvaluationVariant
 from ...evaluation.verification import InvestigationVerification
@@ -143,10 +144,11 @@ class PenguiFlowInvestigationProjector:
 
         steps = expand_parallel_steps(trajectory.steps)
         verification = self._project_verification(replace(trajectory, steps=steps))
-        verification_by_index = {
-            evidence.step_index: evidence
-            for evidence in verification.step_evidence
-        } if verification is not None else {}
+        verification_by_index = (
+            {evidence.step_index: evidence for evidence in verification.step_evidence}
+            if verification is not None
+            else {}
+        )
         projected_steps: list[dict[str, Any]] = []
         for index, step in enumerate(steps):
             projected_step: dict[str, Any] = {
@@ -294,6 +296,32 @@ class PenguiFlowInvestigationPublicationHook:
             logger.warning("PenguiFlow investigation publication failed", exc_info=True)
         finally:
             publication.completed.set()
+
+
+def to_generic_trajectory(trajectory: Trajectory) -> GenericTrajectory:
+    """Translate a native PenguiFlow trajectory into the framework-neutral shape a verifier reads.
+
+    This is the one place PenguiFlow's own step shape (`TrajectoryStep`, `PlannerAction`) is read;
+    every other framework integration writes the equivalent of this one function, and a verifier
+    written against `GenericStep`/`GenericTrajectory` never needs to change when a new one is added.
+    """
+
+    steps = expand_parallel_steps(trajectory.steps)
+    return GenericTrajectory(
+        query=trajectory.query,
+        steps=tuple(
+            GenericStep(
+                tool=step.action.next_node,
+                args=step.action.args,
+                observation=step.observation,
+                error=step.error,
+                failure=step.failure,
+            )
+            for step in steps
+        ),
+        final_answer=trajectory.final_answer,
+        llm_context=trajectory.llm_context or {},
+    )
 
 
 def project_trajectory(trajectory: Trajectory) -> TrajectoryProjection:
@@ -472,6 +500,71 @@ class ScopedSkillActivationAdapter:
         )
 
 
+class PenguiFlowFrameworkAdapter:
+    """PenguiFlow's implementation of `integrations.protocol.FrameworkAdapter`.
+
+    Wraps the pieces above (`PenguiFlowInvestigationProjector`, `to_generic_trajectory`,
+    `ScopedSkillActivationAdapter`) behind the four-method contract every framework integration
+    implements. This is the reference adapter the conformance suite compares every other one
+    against; a host wanting richer, domain-specific injection (matching a question's category, as
+    the campaign agent does) builds its own `LLMContextHook` instead of `attach_guidance`'s
+    generic default -- the protocol only promises that *some* hook gets built, not how it decides.
+    """
+
+    def __init__(self, projector: PenguiFlowInvestigationProjector, skill_store: LocalSkillStore) -> None:
+        self._projector = projector
+        self._delivery = ScopedSkillActivationAdapter(skill_store)
+
+    def to_generic_trajectory(self, native_run: Trajectory) -> GenericTrajectory:
+        return to_generic_trajectory(native_run)
+
+    def project(
+        self,
+        native_run: Trajectory,
+        *,
+        completed_at: datetime | None = None,
+        investigation_id: str | None = None,
+    ) -> InvestigationTrajectoryV1:
+        return self._projector.project(native_run, completed_at=completed_at, investigation_id=investigation_id)
+
+    def attach_guidance(self, *, guidance: str, categories: tuple[str, ...]) -> Any:
+        """A generic `LLMContextHook`: matches by `tool_context["question_category"]` if given.
+
+        With no `categories`, the guidance is attached to every turn. This convention is a
+        reasonable default, not a requirement of the protocol; a richer host-owned hook (matching
+        on the host's own category scheme, as campaign's `apply_approved_guidance` does) satisfies
+        `attach_guidance` equally well.
+        """
+
+        return _GenericAdvisoryHook(guidance=guidance, categories=categories)
+
+    def deliver(
+        self,
+        authorization: DeliveryAuthorization,
+        candidate: AdvisorySkillCandidate,
+        *,
+        now: datetime | None = None,
+    ) -> ActivationReceipt:
+        skill = compile_advisory_skill(candidate, trigger=candidate.advisory_skill[:120])
+        return self._delivery.deliver(authorization, candidate, skill, now=now)
+
+
+class _GenericAdvisoryHook:
+    """The generic `LLMContextHook` `PenguiFlowFrameworkAdapter.attach_guidance` builds."""
+
+    name = "generic_advisory_hook"
+    overwrite = False
+
+    def __init__(self, *, guidance: str, categories: tuple[str, ...]) -> None:
+        self._guidance = guidance
+        self._categories = categories
+
+    async def before_run(self, inp: Any) -> Mapping[str, Any] | None:
+        if self._categories and inp.tool_context.get("question_category") not in self._categories:
+            return None
+        return {"advisory_guidance": self._guidance}
+
+
 def _parse_scope_ref(scope_ref: str) -> tuple[SkillScopeMode, str | None, str | None]:
     if scope_ref == "global":
         return "global", None, None
@@ -531,6 +624,7 @@ def _slug(value: str) -> str:
 
 __all__ = [
     "PenguiFlowEvaluationRunner",
+    "PenguiFlowFrameworkAdapter",
     "PenguiFlowInvestigationContext",
     "InvestigationPublication",
     "PenguiFlowInvestigationProjector",
@@ -541,4 +635,5 @@ __all__ = [
     "TrajectoryProjection",
     "compile_advisory_skill",
     "project_trajectory",
+    "to_generic_trajectory",
 ]

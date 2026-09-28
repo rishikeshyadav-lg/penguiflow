@@ -67,15 +67,6 @@ from .evaluation.verification import (
     VerificationCheck,
     score_final_answer,
 )
-from .integrations.penguiflow.projector import (
-    InvestigationPublication,
-    PenguiFlowInvestigationContext,
-    PenguiFlowInvestigationProjector,
-    PenguiFlowInvestigationPublicationHook,
-    ScopedSkillActivationAdapter,
-    compile_advisory_skill,
-    expand_parallel_steps,
-)
 from .mining.investigation_mining import (
     EvaluationCaseBuilder,
     InvestigationSelection,
@@ -201,3 +192,30 @@ __all__ = [
     "reserve_later_held_out_cohort",
     "score_final_answer",
 ]
+
+# The PenguiFlow integration is the only framework-specific piece of this otherwise
+# framework-neutral package (see `integrations/protocol.py` for the contract every framework,
+# PenguiFlow included, implements against). Importing it eagerly would make `import
+# learning_control_plane` alone pull in every `penguiflow.*` module, defeating the point of a
+# core that other frameworks can depend on without PenguiFlow installed. `__getattr__` defers
+# that import to first use, so these names still work exactly as a normal top-level import
+# (`from learning_control_plane import PenguiFlowInvestigationProjector`), just lazily.
+_PENGUIFLOW_INTEGRATION_NAMES = frozenset(
+    {
+        "InvestigationPublication",
+        "PenguiFlowInvestigationContext",
+        "PenguiFlowInvestigationProjector",
+        "PenguiFlowInvestigationPublicationHook",
+        "ScopedSkillActivationAdapter",
+        "compile_advisory_skill",
+        "expand_parallel_steps",
+    }
+)
+
+
+def __getattr__(name: str) -> object:
+    if name in _PENGUIFLOW_INTEGRATION_NAMES:
+        from .integrations.penguiflow import projector
+
+        return getattr(projector, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

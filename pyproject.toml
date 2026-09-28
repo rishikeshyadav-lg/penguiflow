@@ -114,6 +114,9 @@ pydantic-ai = [
     "pydantic-ai-slim[openai,openrouter]>=1.107.0,<2",
     "genai-prices>=0.0.66,<1",
 ]
+langchain = [
+    "langchain-core>=1.6.5",
+]
 
 [project.scripts]
 penguiflow-admin = "penguiflow.admin:main"

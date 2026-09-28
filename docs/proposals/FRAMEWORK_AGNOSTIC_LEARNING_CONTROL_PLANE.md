@@ -9,6 +9,23 @@
   mechanics from that RFC remain inputs to the first provider implementation;
   its scheduler, gate, ledger, and governance placement must be realigned to
   this architecture.
+- **Built (2026-09-28):** a smaller, pragmatic first cut of the provider contract
+  described here now exists as real code and tests -- not the full capability-
+  descriptor/authorization surface in §5.3-§5.4, but the part this proposal's
+  Phase 0 conformance idea depends on: a four-method `FrameworkAdapter` Protocol
+  (`learning_control_plane/integrations/protocol.py`), a framework-neutral step
+  contract for verifiers (`learning_control_plane/contracts/steps.py`), and three
+  implementations proving it isn't secretly PenguiFlow-shaped -- PenguiFlow's own
+  (`integrations/penguiflow/projector.py`), a synthetic mock
+  (`integrations/mock/`), and a real second framework, LangChain
+  (`integrations/langchain/`), with a conformance suite running the same tests
+  against all three (`tests/learning_control_plane/test_provider_conformance.py`)
+  and a live LangChain demo agent gated end to end
+  (`examples/langchain_demo/`). See
+  [learning-control-plane-plug-and-play.md](../learning-control-plane-plug-and-play.md)
+  for what a new framework author actually implements. The rest of this
+  document -- capability descriptors, authorization, generator-risk governance --
+  remains a discussion draft.
 
 ## 1. Executive decision
 
