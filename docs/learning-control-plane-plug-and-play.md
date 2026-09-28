@@ -13,6 +13,11 @@ This doc is for someone plugging in a framework that is not PenguiFlow or
 LangChain (say, Google's ADK, or an in-house agent loop). It says exactly what
 to implement, using the two existing adapters as templates.
 
+The LCP now ships as its own package, `packages/learning-control-plane/` in this repo
+(`pip install learning-control-plane`, not yet published -- see that package's own README).
+Every `learning_control_plane/...` path below is relative to that package's own source root,
+i.e. `packages/learning-control-plane/learning_control_plane/...` in this repo.
+
 ## The contract
 
 `learning_control_plane/integrations/protocol.py` defines it as a

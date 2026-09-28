@@ -114,12 +114,6 @@ pydantic-ai = [
     "pydantic-ai-slim[openai,openrouter]>=1.107.0,<2",
     "genai-prices>=0.0.66,<1",
 ]
-langchain = [
-    "databricks-langchain>=0.20.0",
-    "langchain>=1.2.10",
-    "langchain-core>=1.6.5",
-    "langgraph>=1.1",
-]
 
 [project.scripts]
 penguiflow-admin = "penguiflow.admin:main"
@@ -129,7 +123,7 @@ penguiflow = "penguiflow.cli.main:app"
 Homepage = "https://github.com/hurtener/penguiflow"
 
 [tool.setuptools]
-packages = { find = { include = ["penguiflow*", "penguiflow_a2a*", "learning_control_plane*", "examples*"] } }
+packages = { find = { include = ["penguiflow*", "penguiflow_a2a*", "examples*"] } }
 include-package-data = true
 
 [tool.setuptools.exclude-package-data]
@@ -164,6 +158,13 @@ package = true
 managed = true
 default-groups = ["dev"]
 
+[tool.uv.workspace]
+members = ["packages/learning-control-plane"]
+
+[tool.uv.sources]
+learning-control-plane = { workspace = true }
+penguiflow = { workspace = true }
+
 [dependency-groups]
 dev = [
     "mypy>=1.8",
@@ -196,6 +197,10 @@ dev = [
     # pydantic-ai transport tests
     "pydantic-ai-slim[openai,openrouter]>=1.107.0,<2",
     "genai-prices>=0.0.66,<1",
+    # learning_control_plane now lives in packages/learning-control-plane as its own workspace
+    # member; pull in its extras here so `tests/learning_control_plane/` keeps running exactly
+    # as before the split.
+    "learning-control-plane[langchain,mlflow,penguiflow]",
 ]
 
 [tool.ruff]
@@ -215,7 +220,7 @@ select = ["E", "F", "I", "UP", "B", "W"]
 ignore = ["UP042"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["penguiflow"]
+known-first-party = ["penguiflow", "learning_control_plane"]
 
 [tool.mypy]
 python_version = "3.11"

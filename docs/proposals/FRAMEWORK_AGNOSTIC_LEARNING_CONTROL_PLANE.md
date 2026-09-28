@@ -21,7 +21,9 @@
   (`integrations/langchain/`), with a conformance suite running the same tests
   against all three (`tests/learning_control_plane/test_provider_conformance.py`)
   and a live LangChain demo agent gated end to end
-  (`examples/langchain_demo/`). See
+  (`examples/langchain_demo/`). As of 2026-09-28 the whole `learning_control_plane` package also
+  moved into its own installable distribution, `packages/learning-control-plane/` (not yet
+  published to PyPI) -- see that package's README and
   [learning-control-plane-plug-and-play.md](../learning-control-plane-plug-and-play.md)
   for what a new framework author actually implements. The rest of this
   document -- capability descriptors, authorization, generator-risk governance --

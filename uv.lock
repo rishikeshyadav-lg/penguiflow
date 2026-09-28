@@ -10,6 +10,12 @@ resolution-markers = [
     "python_full_version < '3.12' and sys_platform != 'win32'",
 ]
 
+[manifest]
+members = [
+    "learning-control-plane",
+    "penguiflow",
+]
+
 [[package]]
 name = "ag-ui-protocol"
 version = "0.1.10"
@@ -2430,6 +2436,42 @@ wheels = [
 ]
 
 [[package]]
+name = "learning-control-plane"
+version = "0.1.0"
+source = { editable = "packages/learning-control-plane" }
+
+[package.optional-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+langchain = [
+    { name = "databricks-langchain" },
+    { name = "langchain" },
+]
+mlflow = [
+    { name = "mlflow" },
+]
+penguiflow = [
+    { name = "penguiflow" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "databricks-langchain", marker = "extra == 'langchain'", specifier = ">=0.20.0" },
+    { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.4" },
+    { name = "mlflow", marker = "extra == 'mlflow'", specifier = "==3.12.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8" },
+    { name = "penguiflow", marker = "extra == 'penguiflow'", editable = "." },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.2" },
+]
+provides-extras = ["mlflow", "penguiflow", "langchain", "dev"]
+
+[[package]]
 name = "litellm"
 version = "1.94.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3685,12 +3727,6 @@ docs = [
     { name = "mkdocs-material" },
     { name = "mkdocstrings", extra = ["python"] },
 ]
-langchain = [
-    { name = "databricks-langchain" },
-    { name = "langchain" },
-    { name = "langchain-core" },
-    { name = "langgraph" },
-]
 llm = [
     { name = "anthropic" },
     { name = "boto3" },
@@ -3744,6 +3780,7 @@ dev = [
     { name = "hypothesis" },
     { name = "jinja2" },
     { name = "jsonschema" },
+    { name = "learning-control-plane", extra = ["langchain", "mlflow", "penguiflow"] },
     { name = "markitdown" },
     { name = "mypy" },
     { name = "openai" },
@@ -3773,7 +3810,6 @@ requires-dist = [
     { name = "boto3", marker = "extra == 'llm'", specifier = ">=1.42.0" },
     { name = "click", specifier = ">=8.1" },
     { name = "coverage", extras = ["toml"], marker = "extra == 'dev'", specifier = ">=7.0" },
-    { name = "databricks-langchain", marker = "extra == 'langchain'", specifier = ">=0.20.0" },
     { name = "databricks-mcp", specifier = ">=0.6.0" },
     { name = "databricks-sdk", marker = "extra == 'llm'", specifier = ">=0.77.0" },
     { name = "dspy", marker = "extra == 'planner'", specifier = ">=3.0.3" },
@@ -3803,9 +3839,6 @@ requires-dist = [
     { name = "jinja2", marker = "extra == 'dev'", specifier = ">=3.1" },
     { name = "jsonschema", marker = "extra == 'dev'", specifier = ">=4.23" },
     { name = "jsonschema", marker = "extra == 'planner'", specifier = ">=4.23" },
-    { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.2.10" },
-    { name = "langchain-core", marker = "extra == 'langchain'", specifier = ">=1.6.5" },
-    { name = "langgraph", marker = "extra == 'langchain'", specifier = ">=1.1" },
     { name = "litellm", marker = "extra == 'planner'", specifier = ">=1.94.0" },
     { name = "markitdown", marker = "extra == 'dev'", specifier = ">=0.1.5" },
     { name = "markitdown", marker = "extra == 'web'", specifier = ">=0.1.5" },
@@ -3840,7 +3873,7 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'cli'", specifier = ">=0.32" },
     { name = "uvicorn", marker = "extra == 'dev'", specifier = ">=0.32" },
 ]
-provides-extras = ["dev", "docs", "cli", "a2a-server", "a2a-grpc", "a2a-client", "planner", "web", "llm", "tools-cli", "tools-websocket", "pricing", "pydantic-ai", "langchain"]
+provides-extras = ["dev", "docs", "cli", "a2a-server", "a2a-grpc", "a2a-client", "planner", "web", "llm", "tools-cli", "tools-websocket", "pricing", "pydantic-ai"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -3860,6 +3893,7 @@ dev = [
     { name = "hypothesis", specifier = ">=6.103" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "jsonschema", specifier = ">=4.23" },
+    { name = "learning-control-plane", extras = ["langchain", "mlflow", "penguiflow"], editable = "packages/learning-control-plane" },
     { name = "markitdown", specifier = ">=0.1.5" },
     { name = "mypy", specifier = ">=1.8" },
     { name = "openai", specifier = ">=2.0.0" },
