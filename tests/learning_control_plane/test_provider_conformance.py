@@ -10,7 +10,9 @@ change to judge either framework's runs.
 
 A real second framework, LangChain (`integrations/langchain/`), is in `CASES` alongside the mock
 and PenguiFlow, so the same suite covers it too: a genuinely different framework, not a fixture
-built to be easy to pass.
+built to be easy to pass. LangChain also appears twice, once per native run shape it actually
+returns (`langchain` for the legacy `AgentExecutor.invoke()` shape, `langchain-messages` for
+`langchain.agents.create_agent(...).invoke()`'s message list) -- the same adapter, two real shapes.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from typing import Any
 
 import pytest
 from langchain_core.agents import AgentAction
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from learning_control_plane.contracts.investigation import SourceTraceRef
 from learning_control_plane.contracts.steps import GenericTrajectory
@@ -103,6 +106,25 @@ def _langchain_case(_tmp_path: Path) -> tuple[FrameworkAdapter, Any]:
     return adapter, native_run
 
 
+def _langchain_messages_case(_tmp_path: Path) -> tuple[FrameworkAdapter, Any]:
+    context = LangChainInvestigationContext(
+        agent_ref="conformance-agent", scope_ref="tenant:conformance", execution_fingerprint="sha256:fp"
+    )
+    adapter = LangChainFrameworkAdapter(context)
+    native_run = {
+        "messages": [
+            HumanMessage(content="how many clicks did the campaign get"),
+            AIMessage(
+                content="",
+                tool_calls=[{"name": "lookup", "args": {"acid": "112774"}, "id": "call-1", "type": "tool_call"}],
+            ),
+            ToolMessage(content="400 clicks", tool_call_id="call-1", status="success"),
+            AIMessage(content="400 clicks.", tool_calls=[]),
+        ]
+    }
+    return adapter, native_run
+
+
 def _mock_case(_tmp_path: Path) -> tuple[FrameworkAdapter, Any]:
     context = MockInvestigationContext(
         agent_ref="conformance-agent", scope_ref="tenant:conformance", execution_fingerprint="sha256:fp"
@@ -116,7 +138,12 @@ def _mock_case(_tmp_path: Path) -> tuple[FrameworkAdapter, Any]:
     return adapter, native_run
 
 
-CASES = {"penguiflow": _penguiflow_case, "mock": _mock_case, "langchain": _langchain_case}
+CASES = {
+    "penguiflow": _penguiflow_case,
+    "mock": _mock_case,
+    "langchain": _langchain_case,
+    "langchain-messages": _langchain_messages_case,
+}
 
 
 @pytest.fixture(params=list(CASES))
@@ -189,3 +216,33 @@ def test_every_adapter_delivers_a_receipt_for_an_active_authorization_and_refuse
 
     assert receipt.candidate_id == "c-1" and receipt.scope_ref == "tenant:conformance"
     assert receipt.skill_digest is not None
+
+
+def test_the_langchain_messages_adapter_marks_a_failed_tool_call_as_an_error_step() -> None:
+    """Not part of `CASES`: `_toy_verifier` requires a successful `lookup` step, so a run with a
+    failed one needs its own check rather than the shared conformance assertions above.
+    """
+
+    adapter = LangChainFrameworkAdapter(
+        LangChainInvestigationContext(
+            agent_ref="conformance-agent", scope_ref="tenant:conformance", execution_fingerprint="sha256:fp"
+        )
+    )
+    native_run = {
+        "messages": [
+            HumanMessage(content="how many clicks did campaign 999 get"),
+            AIMessage(
+                content="",
+                tool_calls=[{"name": "lookup", "args": {"acid": "999"}, "id": "call-1", "type": "tool_call"}],
+            ),
+            ToolMessage(content="campaign not found", tool_call_id="call-1", status="error"),
+            AIMessage(content="I could not find that campaign.", tool_calls=[]),
+        ]
+    }
+
+    generic = adapter.to_generic_trajectory(native_run)
+    assert generic.steps[0].observation is None
+    assert generic.steps[0].error == "campaign not found"
+
+    document = adapter.project(native_run)
+    assert document.execution_context["verified_success"] is False
