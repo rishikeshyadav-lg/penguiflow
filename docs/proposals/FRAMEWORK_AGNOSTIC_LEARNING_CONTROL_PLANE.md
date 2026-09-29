@@ -20,8 +20,14 @@
   (`integrations/mock/`), and a real second framework, LangChain
   (`integrations/langchain/`), with a conformance suite running the same tests
   against all three (`tests/learning_control_plane/test_provider_conformance.py`)
-  and a live LangChain demo agent gated end to end
-  (`examples/langchain_demo/`). As of 2026-09-28 the whole `learning_control_plane` package also
+  and live demo agents for both real frameworks gated end to end against a real model
+  (`examples/langchain_demo/`, `examples/penguiflow_demo/`). The contract has also been
+  proven on real work: campaign's verifier and judge (the production judge behind the
+  campaign agent) now read `GenericStep` instead of PenguiFlow's native step shape, with the
+  translation done once at the PenguiFlow-aware layer. On seven hand-built trajectories
+  (ranking, summary, tool error, rendered table, a parallel step) the migrated verifier produced
+  the same verification records, and the same judge inputs and evidence, as the original.
+  As of 2026-09-28 the whole `learning_control_plane` package also
   moved into its own installable distribution, `packages/learning-control-plane/` (not yet
   published to PyPI) -- see that package's README and
   [learning-control-plane-plug-and-play.md](../learning-control-plane-plug-and-play.md)
