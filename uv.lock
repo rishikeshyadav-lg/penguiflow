@@ -12,6 +12,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "agent-evals",
     "learning-control-plane",
     "penguiflow",
 ]
@@ -27,6 +28,28 @@ sdist = { url = "https://files.pythonhosted.org/packages/67/bb/5a5ec893eea5805fb
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/78/eb55fabaab41abc53f52c0918a9a8c0f747807e5306273f51120fd695957/ag_ui_protocol-0.1.10-py3-none-any.whl", hash = "sha256:c81e6981f30aabdf97a7ee312bfd4df0cd38e718d9fc10019c7d438128b93ab5", size = 7889, upload-time = "2025-11-06T15:17:15.325Z" },
 ]
+
+[[package]]
+name = "agent-evals"
+version = "0.1.0"
+source = { editable = "packages/agent-evals" }
+
+[package.optional-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.2" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "aiofile"
@@ -2439,6 +2462,9 @@ wheels = [
 name = "learning-control-plane"
 version = "0.1.0"
 source = { editable = "packages/learning-control-plane" }
+dependencies = [
+    { name = "agent-evals" },
+]
 
 [package.optional-dependencies]
 dev = [
@@ -2460,6 +2486,7 @@ penguiflow = [
 
 [package.metadata]
 requires-dist = [
+    { name = "agent-evals", editable = "packages/agent-evals" },
     { name = "databricks-langchain", marker = "extra == 'langchain'", specifier = ">=0.20.0" },
     { name = "langchain", marker = "extra == 'langchain'", specifier = ">=1.4" },
     { name = "mlflow", marker = "extra == 'mlflow'", specifier = "==3.12.0" },

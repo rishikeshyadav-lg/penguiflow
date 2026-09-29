@@ -159,10 +159,11 @@ managed = true
 default-groups = ["dev"]
 
 [tool.uv.workspace]
-members = ["packages/learning-control-plane"]
+members = ["packages/learning-control-plane", "packages/agent-evals"]
 
 [tool.uv.sources]
 learning-control-plane = { workspace = true }
+agent-evals = { workspace = true }
 penguiflow = { workspace = true }
 
 [dependency-groups]
@@ -220,7 +221,7 @@ select = ["E", "F", "I", "UP", "B", "W"]
 ignore = ["UP042"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["penguiflow", "learning_control_plane"]
+known-first-party = ["penguiflow", "learning_control_plane", "agent_evals"]
 
 [tool.mypy]
 python_version = "3.11"

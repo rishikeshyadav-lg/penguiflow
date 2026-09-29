@@ -3,30 +3,18 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "learning-control-plane"
+name = "agent-evals"
 version = "0.1.0"
-description = "Framework-agnostic learning control plane: mine agent traces, draft and gate advisory skills, deliver them back."
+description = "Agent-agnostic evaluation: run any agent over a fixed dataset, score it, compare variants, and report with honest statistics."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
     {name = "PenguiFlow Team"},
 ]
-dependencies = [
-    "agent-evals",
-]
+dependencies = []
 
 [project.optional-dependencies]
-mlflow = [
-    "mlflow==3.12.0",
-]
-penguiflow = [
-    "penguiflow>=3.12.0",
-]
-langchain = [
-    "langchain>=1.4",
-    "databricks-langchain>=0.20.0",
-]
 dev = [
     "mypy>=1.8",
     "pytest>=7.4",
@@ -38,7 +26,7 @@ dev = [
 Homepage = "https://github.com/hurtener/penguiflow"
 
 [tool.setuptools]
-packages = { find = { include = ["learning_control_plane*"] } }
+packages = { find = { include = ["agent_evals*"] } }
 license-files = ["LICENSE"]
 
 [tool.ruff]
@@ -47,7 +35,7 @@ target-version = "py311"
 
 [tool.mypy]
 python_version = "3.11"
-files = ["learning_control_plane"]
+files = ["agent_evals"]
 disallow_untyped_defs = false
 ignore_missing_imports = true
 warn_unused_ignores = true

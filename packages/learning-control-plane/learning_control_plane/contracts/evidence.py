@@ -1,180 +1,90 @@
 """Redacted evidence records and best-effort OpenTelemetry/MLflow publishers.
 
-Publishers never make an LCP decision and never raise into an agent workload.
+The neutral pieces -- `EvidenceContext`, the event shape and the `EvidenceSink` interface -- live in
+`agent_evals`, so an evaluation can emit evidence without knowing about this package. What stays here
+is what is specific to the learning control plane: the `lcp.*` tag and attribute names, and the sinks
+that write them. Publishers never make an LCP decision and never raise into an agent workload.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from contextlib import nullcontext
-from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
-from typing import Any, Protocol, runtime_checkable
-from uuid import uuid4
+from dataclasses import asdict, dataclass
+from typing import Any
+
+from agent_evals.evidence import EvidenceContext, EvidenceSink, redact_attributes
+from agent_evals.evidence import EvidenceEvent as NeutralEvidenceEvent
 
 logger = logging.getLogger("learning_control_plane.evidence")
 
 MLFLOW_LINEAGE_SCHEMA_VERSION = "v1"
 
-_SENSITIVE_ATTRIBUTE_PARTS = frozenset(
-    {
-        "api_key",
-        "authorization",
-        "content",
-        "cookie",
-        "credential",
-        "input",
-        "message",
-        "output",
-        "password",
-        "prompt",
-        "secret",
-        "token",
+
+def mlflow_tags(event: NeutralEvidenceEvent) -> dict[str, str]:
+    """Return the versioned MLflow tags that identify this evidence."""
+
+    tags = {
+        "lcp.lineage_schema": MLFLOW_LINEAGE_SCHEMA_VERSION,
+        "lcp.event_id": event.event_id,
+        "lcp.event_type": event.event_type,
+        "lcp.occurred_at": event.occurred_at.isoformat(),
     }
-)
+    for key, value in asdict(event.context).items():
+        if value is not None:
+            tags[f"lcp.{key}"] = str(value)
+    return tags
 
 
-def _require_non_empty(value: str, field_name: str) -> str:
-    cleaned = value.strip()
-    if not cleaned:
-        raise ValueError(f"{field_name} must be non-empty")
-    return cleaned
+def mlflow_metrics(event: NeutralEvidenceEvent) -> dict[str, float]:
+    """Return metric values under the reserved MLflow metric namespace."""
+
+    return {f"lcp.metric.{name}": value for name, value in event.metrics.items()}
 
 
-def redact_attributes(attributes: Mapping[str, Any]) -> dict[str, Any]:
-    """Remove content and credential fields from evidence metadata."""
+def mlflow_artifact_path(event: NeutralEvidenceEvent) -> str:
+    """Return the fixed artifact path for this complete evidence receipt."""
 
-    redacted: dict[str, Any] = {}
-    for raw_key, value in attributes.items():
-        key = str(raw_key).strip()
-        normalized_key = key.lower().replace("-", "_")
-
-        if not key or any(part in normalized_key for part in _SENSITIVE_ATTRIBUTE_PARTS):
-            continue
-
-        try:
-            json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
-        except (TypeError, ValueError):
-            redacted[key] = str(value)
-        else:
-            redacted[key] = value
-    return redacted
+    return f"learning_control_plane/evidence/{MLFLOW_LINEAGE_SCHEMA_VERSION}/{event.event_id}.json"
 
 
-@dataclass(frozen=True, slots=True)
-class EvidenceContext:
-    """Identify the exact agent, deployment, and evaluation evidence belongs to."""
+def telemetry_attributes(event: NeutralEvidenceEvent) -> dict[str, str | bool | float | int]:
+    """Return flat scalar attributes accepted by OpenTelemetry."""
 
-    agent_id: str
-    deployment_digest: str
-    trace_id: str | None = None
-    evaluation_id: str | None = None
-    candidate_id: str | None = None
-    dataset_version: str | None = None
-    metric_version: str | None = None
-    policy_version: str | None = None
-    scope_ref: str | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "agent_id", _require_non_empty(self.agent_id, "agent_id"))
-        object.__setattr__(self, "deployment_digest", _require_non_empty(self.deployment_digest, "deployment_digest"))
+    attributes: dict[str, str | bool | float | int] = {
+        "lcp.event_id": event.event_id,
+        "lcp.event_type": event.event_type,
+        "lcp.occurred_at": event.occurred_at.isoformat(),
+    }
+    for key, value in asdict(event.context).items():
+        if value is not None:
+            attributes[f"lcp.{key}"] = str(value)
+    for key, value in event.attributes.items():
+        if isinstance(value, (str, bool, float, int)):
+            attributes[f"lcp.attr.{key}"] = value
+    return attributes
 
 
 @dataclass(frozen=True, slots=True)
-class EvidenceEvent:
-    """Record one offline learning-plane event and its redacted metadata."""
+class EvidenceEvent(NeutralEvidenceEvent):
+    """An evidence event that can also describe itself in the `lcp.*` naming used by MLflow and OTel.
 
-    event_type: str
-    context: EvidenceContext
-    attributes: Mapping[str, Any] = field(default_factory=dict)
-    metrics: Mapping[str, float] = field(default_factory=dict)
-    event_id: str = field(default_factory=lambda: f"ev_{uuid4().hex}")
-    occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "event_type", _require_non_empty(self.event_type, "event_type"))
-        object.__setattr__(self, "event_id", _require_non_empty(self.event_id, "event_id"))
-        if self.occurred_at.tzinfo is None:
-            raise ValueError("occurred_at must be timezone-aware")
-        object.__setattr__(self, "attributes", redact_attributes(self.attributes))
-        object.__setattr__(self, "metrics", self._validated_metrics())
-
-    def _validated_metrics(self) -> dict[str, float]:
-        metrics: dict[str, float] = {}
-        for raw_name, raw_value in self.metrics.items():
-            name = _require_non_empty(str(raw_name), "metric name")
-            value = float(raw_value)
-            if not math.isfinite(value):
-                raise ValueError(f"metric {name!r} must be finite")
-            metrics[name] = value
-        return metrics
-
-    def record(self) -> dict[str, Any]:
-        """Return the JSON-safe record stored by evidence systems."""
-
-        record = asdict(self.context)
-        record.update(
-            {
-                "event_id": self.event_id,
-                "event_type": self.event_type,
-                "occurred_at": self.occurred_at.isoformat(),
-                "attributes": dict(self.attributes),
-                "metrics": dict(self.metrics),
-            }
-        )
-        return record
+    The fields and validation are the neutral event's. The sinks below call the module functions, so
+    they accept a neutral event (one an evaluation emitted) as readily as this one.
+    """
 
     def mlflow_tags(self) -> dict[str, str]:
-        """Return the versioned MLflow tags that identify this evidence."""
-
-        tags = {
-            "lcp.lineage_schema": MLFLOW_LINEAGE_SCHEMA_VERSION,
-            "lcp.event_id": self.event_id,
-            "lcp.event_type": self.event_type,
-            "lcp.occurred_at": self.occurred_at.isoformat(),
-        }
-        for key, value in asdict(self.context).items():
-            if value is not None:
-                tags[f"lcp.{key}"] = str(value)
-        return tags
+        return mlflow_tags(self)
 
     def mlflow_metrics(self) -> dict[str, float]:
-        """Return metric values under the reserved MLflow metric namespace."""
-
-        return {f"lcp.metric.{name}": value for name, value in self.metrics.items()}
+        return mlflow_metrics(self)
 
     def mlflow_artifact_path(self) -> str:
-        """Return the fixed artifact path for this complete evidence receipt."""
-
-        return f"learning_control_plane/evidence/{MLFLOW_LINEAGE_SCHEMA_VERSION}/{self.event_id}.json"
+        return mlflow_artifact_path(self)
 
     def telemetry_attributes(self) -> dict[str, str | bool | float | int]:
-        """Return flat scalar attributes accepted by OpenTelemetry."""
-
-        attributes: dict[str, str | bool | float | int] = {
-            "lcp.event_id": self.event_id,
-            "lcp.event_type": self.event_type,
-            "lcp.occurred_at": self.occurred_at.isoformat(),
-        }
-        for key, value in asdict(self.context).items():
-            if value is not None:
-                attributes[f"lcp.{key}"] = str(value)
-        for key, value in self.attributes.items():
-            if isinstance(value, (str, bool, float, int)):
-                attributes[f"lcp.attr.{key}"] = value
-        return attributes
-
-
-@runtime_checkable
-class EvidenceSink(Protocol):
-    """Best-effort destination for redacted evidence records."""
-
-    def emit(self, event: EvidenceEvent) -> bool:
-        """Store or publish an event, returning whether the attempt succeeded."""
-        ...
+        return telemetry_attributes(self)
 
 
 class CompositeEvidenceSink:
@@ -183,7 +93,7 @@ class CompositeEvidenceSink:
     def __init__(self, sinks: Sequence[EvidenceSink]) -> None:
         self._sinks = tuple(sinks)
 
-    def emit(self, event: EvidenceEvent) -> bool:
+    def emit(self, event: NeutralEvidenceEvent) -> bool:
         delivered = False
         for sink in self._sinks:
             try:
@@ -219,13 +129,13 @@ class OpenTelemetryEvidenceSink:
         self._tracer = trace.get_tracer("learning_control_plane")
         return self._tracer
 
-    def emit(self, event: EvidenceEvent) -> bool:
+    def emit(self, event: NeutralEvidenceEvent) -> bool:
         tracer = self._resolve_tracer()
         if tracer is None:
             return False
         try:
             with tracer.start_as_current_span(f"{self._span_prefix}.{event.event_type}") as span:
-                for key, value in event.telemetry_attributes().items():
+                for key, value in telemetry_attributes(event).items():
                     span.set_attribute(key, value)
             return True
         except Exception:
@@ -260,7 +170,7 @@ class MlflowEvidenceSink:
         self._mlflow = mlflow
         return mlflow
 
-    def emit(self, event: EvidenceEvent) -> bool:
+    def emit(self, event: NeutralEvidenceEvent) -> bool:
         mlflow = self._module()
         if mlflow is None:
             return False
@@ -270,12 +180,12 @@ class MlflowEvidenceSink:
             if active_run is None:
                 run_context = mlflow.start_run(run_name=f"{self._run_name_prefix}-{event.event_type}")
             with run_context:
-                mlflow.set_tags(event.mlflow_tags())
-                metrics = event.mlflow_metrics()
+                mlflow.set_tags(mlflow_tags(event))
+                metrics = mlflow_metrics(event)
                 if metrics and hasattr(mlflow, "log_metrics"):
                     mlflow.log_metrics(metrics)
                 if hasattr(mlflow, "log_dict"):
-                    mlflow.log_dict(event.record(), event.mlflow_artifact_path())
+                    mlflow.log_dict(event.record(), mlflow_artifact_path(event))
             return True
         except Exception:
             logger.warning("MLflow evidence emission failed", exc_info=True)
@@ -290,5 +200,9 @@ __all__ = [
     "MLFLOW_LINEAGE_SCHEMA_VERSION",
     "MlflowEvidenceSink",
     "OpenTelemetryEvidenceSink",
+    "mlflow_artifact_path",
+    "mlflow_metrics",
+    "mlflow_tags",
     "redact_attributes",
+    "telemetry_attributes",
 ]
