@@ -98,15 +98,23 @@ class EvaluationDataset:
 
 @dataclass(frozen=True, slots=True)
 class EvaluationVariant:
-    """One agent configuration, which may carry an advisory skill."""
+    """One agent configuration: an advisory skill, free-form settings, or both.
+
+    `config` is for whatever the agent's runner needs to build this variant (a model name, a prompt,
+    a flag). The evaluation never reads it; it only hands the variant to `run_one`.
+    """
 
     variant_id: str
     advisory_skill: str | None = None
+    config: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "variant_id", _non_empty(self.variant_id, "variant_id"))
         if self.advisory_skill is not None:
             object.__setattr__(self, "advisory_skill", _non_empty(self.advisory_skill, "advisory_skill"))
+        if not isinstance(self.config, Mapping):
+            raise ValueError("config must be a mapping")
+        object.__setattr__(self, "config", dict(self.config))
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,12 +173,15 @@ class VariantCaseResult:
     metrics: Mapping[str, float] = field(default_factory=dict)
     safe_evidence: Mapping[str, Any] = field(default_factory=dict)
     error: str | None = None
+    # Per metric name: the scorer's feedback and checks, when it gave any. Free text; not "safe evidence".
+    score_details: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "variant_id", _non_empty(self.variant_id, "variant_id"))
         if not isinstance(self.safe_evidence, Mapping):
             raise ValueError("safe_evidence must be a mapping")
         object.__setattr__(self, "safe_evidence", dict(self.safe_evidence))
+        object.__setattr__(self, "score_details", {name: dict(detail) for name, detail in self.score_details.items()})
 
 
 @dataclass(frozen=True, slots=True)
@@ -383,32 +394,20 @@ class LocalEvaluationBackend:
     ) -> PairedEvaluationResult:
         """Evaluate the baseline and candidate against every fixed case."""
 
+        # The runner imports this module for the types above, so it is imported here to avoid a cycle.
+        from .runner import run_cases
+
         self._emit_started(request)
 
-        case_results: list[PairedCaseResult] = []
-        for case in request.dataset.cases:
-            baseline = await self._evaluate_case(case, request.baseline, run_one, metric)
-            candidate = await self._evaluate_case(case, request.candidate, run_one, metric)
-            case_results.append(PairedCaseResult(case_id=case.case_id, baseline=baseline, candidate=candidate))
+        rows = await run_cases(request.dataset.cases, [request.baseline, request.candidate], run_one, metric)
+        case_results = tuple(
+            PairedCaseResult(case_id=case.case_id, baseline=baseline, candidate=candidate)
+            for case, (baseline, candidate) in zip(request.dataset.cases, rows, strict=True)
+        )
 
-        result = PairedEvaluationResult(request=request, case_results=tuple(case_results))
+        result = PairedEvaluationResult(request=request, case_results=case_results)
         self._emit_completed(result)
         return result
-
-    async def _evaluate_case(
-        self,
-        case: EvaluationCase,
-        variant: EvaluationVariant,
-        run_one: RunOne,
-        metric: Metric,
-    ) -> VariantCaseResult:
-        try:
-            output = await _await_value(run_one(case, variant))
-            metrics = await _await_value(metric(case, output))
-            return VariantCaseResult(variant_id=variant.variant_id, output=output, metrics=_validated_metrics(metrics))
-        except Exception as error:
-            logger.info("Evaluation case failed", exc_info=True)
-            return VariantCaseResult(variant_id=variant.variant_id, error=f"{type(error).__name__}: {error}")
 
     def _emit_started(self, request: EvaluationRequest) -> None:
         context = replace(request.evidence_context, candidate_id=request.candidate.variant_id)
