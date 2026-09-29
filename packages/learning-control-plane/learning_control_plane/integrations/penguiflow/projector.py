@@ -298,15 +298,19 @@ class PenguiFlowInvestigationPublicationHook:
             publication.completed.set()
 
 
-def to_generic_trajectory(trajectory: Trajectory) -> GenericTrajectory:
+def to_generic_trajectory(trajectory: Trajectory, *, expand_parallel: bool = True) -> GenericTrajectory:
     """Translate a native PenguiFlow trajectory into the framework-neutral shape a verifier reads.
 
     This is the one place PenguiFlow's own step shape (`TrajectoryStep`, `PlannerAction`) is read;
     every other framework integration writes the equivalent of this one function, and a verifier
     written against `GenericStep`/`GenericTrajectory` never needs to change when a new one is added.
+
+    A parallel step is expanded into the real calls it ran by default, so a verifier sees every
+    tool call. Pass `expand_parallel=False` to keep it as the single recorded step, for a caller
+    that must see the run exactly as PenguiFlow recorded it.
     """
 
-    steps = expand_parallel_steps(trajectory.steps)
+    steps = expand_parallel_steps(trajectory.steps) if expand_parallel else trajectory.steps
     return GenericTrajectory(
         query=trajectory.query,
         steps=tuple(

@@ -538,6 +538,18 @@ def test_to_generic_trajectory_expands_parallel_steps_like_the_projector_does() 
     assert generic.steps[1].failure == {"code": "x"}
 
 
+def test_to_generic_trajectory_can_keep_a_parallel_step_as_recorded() -> None:
+    trajectory = Trajectory(
+        query="q",
+        steps=[_parallel_step([{"node": "search_docs", "args": {"q": "a"}, "observation": {"hits": 1}}])],
+    )
+
+    generic = to_generic_trajectory(trajectory, expand_parallel=False)
+
+    assert [step.tool for step in generic.steps] == ["parallel"]
+    assert generic.steps[0].observation["branches"][0]["node"] == "search_docs"
+
+
 # --- the framework adapter protocol -----------------------------------------
 
 
