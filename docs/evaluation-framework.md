@@ -1,7 +1,7 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0 done** (this contract, the package, the neutral core moved out of the learning control
-plane). E1–E9 are planned and marked as such. Written 2026-09-29.
+Status: **E0, E1 and E2 done** (this contract, the package, the neutral core, the general comparison,
+repeated resumable runs). E3–E9 are planned and marked as such. Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -33,7 +33,7 @@ RunOne = Callable[[EvaluationCase, EvaluationVariant], Any | Awaitable[Any]]
 
 It receives a case and a variant and returns *anything*. Scoring works on whatever it returns. To get
 the full benefit (tool-call scoring, cost and latency statistics, comparable reports) it should return a
-`PredictionResult` (planned, E1):
+`PredictionResult` (implemented, E1):
 
 | Field | Meaning |
 |---|---|
@@ -112,12 +112,19 @@ emits. A future change that alters a digest or an emitted event fails a test.
 
 ## 6. Planned behaviour, by milestone
 
-- **E1 generalise the core:** variants with arbitrary `config`; a request over 1..N variants; several scorers
-  per run; `PredictionResult`; paired views for any two variants.
-- **E2 run mechanics:** `repeats`, `concurrency`, `timeout_s`, retries; a JSONL row per (case, variant,
-  repeat) whose keys are a superset of the campaign's `runs.jsonl`; resume that skips finished rows; results
-  independent of concurrency; every expected row has a result or an explicit failure. Silent dropping is a
-  failed evaluation.
+- **E1 generalise the core (done):** variants with arbitrary `config`; `ComparisonRequest` over 1..N variants;
+  several scorers per run (a metric name produced twice fails the case visibly); `PredictionResult` and
+  `ScoreResult`; paired views for any two variants. The old paired backend runs through the same engine.
+- **E2 run mechanics (done):** `run_repeated(cases, variants, run_one, scorers, RunSettings(...), sink)`.
+  - `RunSettings`: `repeats`, `concurrency`, `timeout_s`, `max_retries`, `retry_errors`. Only a
+    `TransientError` raised by the runner is retried; a timeout or any other error is recorded, not retried.
+  - `JsonlRowSink`: one row per (case, variant, repeat), flushed as it finishes. Its keys are a superset of the
+    campaign's `runs.jsonl` (plus `case_id`, `metrics`, `score_details`). Resume skips rows already present;
+    a recorded failure counts as done unless `retry_errors` is set. A half-written last line is dropped; a
+    damaged line elsewhere, or rows that do not belong to this run, are errors.
+  - Rows come back in dataset, variant, repeat order whatever the concurrency. Latency the runner reports is
+    kept; otherwise wall-clock latency is measured. A row read back from the file has `result.output = None`
+    (the live object is not stored); answer, tool calls, metrics and errors are.
 - **E3 statistics:** the case-clustered paired bootstrap (the prompt is the resampling unit because repeats of
   one prompt are not independent evidence), run-to-run noise, the minimum-detectable-effect multiplier
   (1.96 + 0.8416), prompts needed to clear a bar, threshold proposal, verdict wording.

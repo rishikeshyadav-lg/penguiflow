@@ -175,9 +175,14 @@ class VariantCaseResult:
     error: str | None = None
     # Per metric name: the scorer's feedback and checks, when it gave any. Free text; not "safe evidence".
     score_details: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    # Reported by a runner that returns `PredictionResult`; the run executor adds wall-clock latency.
+    latency_ms: float | None = None
+    cost_usd: float | None = None
+    llm_usage: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "variant_id", _non_empty(self.variant_id, "variant_id"))
+        object.__setattr__(self, "llm_usage", dict(self.llm_usage))
         if not isinstance(self.safe_evidence, Mapping):
             raise ValueError("safe_evidence must be a mapping")
         object.__setattr__(self, "safe_evidence", dict(self.safe_evidence))

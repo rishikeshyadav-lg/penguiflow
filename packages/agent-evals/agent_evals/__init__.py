@@ -22,6 +22,7 @@ from .evaluation import (
     RunOne,
     VariantCaseResult,
 )
+from .execution import JsonlRowSink, RepeatedRun, RowKey, RunRow, RunSettings, TransientError, run_repeated
 from .evidence import EvidenceContext, EvidenceEvent, EvidenceSink, redact_attributes
 from .prediction import PredictionResult, PredictionStatus, ScoreResult, ScoreValue, normalize_scores, scorer_name
 from .runner import ComparisonRunner, Scorers, run_case_variant, run_cases, run_comparison
@@ -41,6 +42,7 @@ __all__ = [
     "EvidenceEvent",
     "EvidenceSink",
     "GenericStep",
+    "JsonlRowSink",
     "GenericTrajectory",
     "LocalEvaluationBackend",
     "Metric",
@@ -52,15 +54,21 @@ __all__ = [
     "PairedMetricValue",
     "PredictionResult",
     "PredictionStatus",
+    "RepeatedRun",
+    "RowKey",
     "RunOne",
+    "RunRow",
+    "RunSettings",
     "ScoreResult",
     "ScoreValue",
     "Scorers",
+    "TransientError",
     "VariantCaseResult",
     "normalize_scores",
     "redact_attributes",
     "run_case_variant",
     "run_cases",
     "run_comparison",
+    "run_repeated",
     "scorer_name",
 ]

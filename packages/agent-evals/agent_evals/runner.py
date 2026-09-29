@@ -52,6 +52,14 @@ async def _score(
     return _validated_metrics(merged), details
 
 
+def _reported_usage(output: Any) -> dict[str, Any]:
+    """Latency, cost and LLM usage the runner reported, if it returned a `PredictionResult`."""
+
+    if not isinstance(output, PredictionResult):
+        return {}
+    return {"latency_ms": output.latency_ms, "cost_usd": output.cost_usd, "llm_usage": output.llm_usage}
+
+
 async def run_case_variant(
     case: EvaluationCase, variant: EvaluationVariant, run_one: RunOne, scorers: Sequence[Metric]
 ) -> VariantCaseResult:
@@ -59,11 +67,14 @@ async def run_case_variant(
 
     try:
         output = await _await_value(run_one(case, variant))
+        reported = _reported_usage(output)
         if isinstance(output, PredictionResult) and not output.completed:
             reason = f"{output.status}: {output.error}" if output.error else output.status
-            return VariantCaseResult(variant_id=variant.variant_id, output=output, error=reason)
+            return VariantCaseResult(variant_id=variant.variant_id, output=output, error=reason, **reported)
         metrics, details = await _score(case, output, scorers)
-        return VariantCaseResult(variant_id=variant.variant_id, output=output, metrics=metrics, score_details=details)
+        return VariantCaseResult(
+            variant_id=variant.variant_id, output=output, metrics=metrics, score_details=details, **reported
+        )
     except Exception as error:
         logger.info("Evaluation case failed", exc_info=True)
         return VariantCaseResult(variant_id=variant.variant_id, error=f"{type(error).__name__}: {error}")
