@@ -4,12 +4,18 @@ from __future__ import annotations
 
 import logging
 import math
-import random
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
+
+from agent_evals.statistics import (
+    ConfidenceIntervalRequirement,
+    MetricConfidenceInterval,
+    bootstrap_paired_intervals,
+    confidence_statistic,
+)
 
 from ..contracts.evidence import EvidenceContext, EvidenceEvent, EvidenceSink
 from ..evaluation.evaluation import (
@@ -30,13 +36,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("learning_control_plane.control_plane")
 
+# The statistic moved to `agent_evals.statistics`; the old private name is kept for existing imports.
+_confidence_statistic = confidence_statistic
+
 JobState = Literal["draft", "evaluating", "ready_for_review", "approved", "rejected", "failed"]
-ConfidenceIntervalStatistic = Literal[
-    "mean_improvement",
-    "candidate_mean",
-    "relative_mean_improvement",
-    "relative_mean_regression",
-]
 
 
 def _non_empty(value: str, field_name: str) -> str:
@@ -250,73 +253,6 @@ class PromotionPolicy:
                 continue
             resolved[metric_name] = max(resolved.get(metric_name, 0.0), fraction * abs(baseline_mean))
         return resolved
-
-
-@dataclass(frozen=True, slots=True)
-class ConfidenceIntervalRequirement:
-    """One conservative confidence-bound condition for a promotion metric."""
-
-    metric_name: str
-    statistic: ConfidenceIntervalStatistic
-    minimum_lower_bound: float | None = None
-    maximum_upper_bound: float | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "metric_name", _non_empty(self.metric_name, "confidence interval metric"))
-        if self.statistic not in {
-            "mean_improvement",
-            "candidate_mean",
-            "relative_mean_improvement",
-            "relative_mean_regression",
-        }:
-            raise ValueError("confidence interval statistic is not supported")
-        has_lower_bound = self.minimum_lower_bound is not None
-        has_upper_bound = self.maximum_upper_bound is not None
-        if has_lower_bound == has_upper_bound:
-            raise ValueError("confidence interval requirement needs exactly one lower or upper bound")
-        if has_lower_bound and not math.isfinite(self.minimum_lower_bound):
-            raise ValueError("confidence interval lower bound must be finite")
-        if has_upper_bound and not math.isfinite(self.maximum_upper_bound):
-            raise ValueError("confidence interval upper bound must be finite")
-
-
-@dataclass(frozen=True, slots=True)
-class MetricConfidenceInterval:
-    """A bootstrap confidence interval retained with the gate decision."""
-
-    metric_name: str
-    statistic: ConfidenceIntervalStatistic
-    confidence_level: float
-    estimate: float
-    lower_bound: float
-    upper_bound: float
-    required_lower_bound: float | None = None
-    required_upper_bound: float | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "metric_name", _non_empty(self.metric_name, "confidence interval metric"))
-        if self.statistic not in {
-            "mean_improvement",
-            "candidate_mean",
-            "relative_mean_improvement",
-            "relative_mean_regression",
-        }:
-            raise ValueError("confidence interval statistic is not supported")
-        if not 0 < self.confidence_level < 1:
-            raise ValueError("confidence_level must be greater than 0 and less than 1")
-        has_lower_requirement = self.required_lower_bound is not None
-        has_upper_requirement = self.required_upper_bound is not None
-        if has_lower_requirement == has_upper_requirement:
-            raise ValueError("confidence interval needs exactly one lower or upper requirement")
-        values = [self.estimate, self.lower_bound, self.upper_bound]
-        if self.required_lower_bound is not None:
-            values.append(self.required_lower_bound)
-        if self.required_upper_bound is not None:
-            values.append(self.required_upper_bound)
-        if not all(math.isfinite(value) for value in values):
-            raise ValueError("confidence interval values must be finite")
-        if self.lower_bound > self.upper_bound:
-            raise ValueError("confidence interval lower bound must not exceed its upper bound")
 
 
 @dataclass(frozen=True, slots=True)
@@ -1290,9 +1226,9 @@ class LearningControlPlane:
             return ()
 
         try:
-            return _bootstrap_confidence_intervals(
-                pairs_by_source_case=pairs_by_source_case,
-                source_case_ids=source_case_ids,
+            return bootstrap_paired_intervals(
+                pairs_by_cluster=pairs_by_source_case,
+                cluster_ids=source_case_ids,
                 requirements=requirements,
                 metric_specification=self._policy.metric_specification,
                 confidence_level=self._policy.confidence_level,
@@ -1583,129 +1519,6 @@ def _pairs_include_metric(
         for source_case_id in source_case_ids
         for pair in pairs_by_source_case.get(source_case_id, ())
     )
-
-
-def _bootstrap_confidence_intervals(
-    *,
-    pairs_by_source_case: Mapping[str, Sequence[PairedCaseResult]],
-    source_case_ids: Sequence[str],
-    requirements: Sequence[ConfidenceIntervalRequirement],
-    metric_specification: Callable[[str], MetricSpecification],
-    confidence_level: float,
-    resamples: int,
-) -> tuple[MetricConfidenceInterval, ...]:
-    """Bootstrap case-balanced paired metrics across questions and repetitions."""
-
-    random_source = random.Random(
-        _bootstrap_seed(pairs_by_source_case, source_case_ids, requirements, confidence_level, resamples)
-    )
-    estimates = {(requirement.metric_name, requirement.statistic): [] for requirement in requirements}
-    observed_pairs = [pair for source_case_id in source_case_ids for pair in pairs_by_source_case[source_case_id]]
-    observed_statistics = {
-        (requirement.metric_name, requirement.statistic): _confidence_statistic(
-            observed_pairs,
-            requirement,
-            metric_specification(requirement.metric_name),
-        )
-        for requirement in requirements
-    }
-
-    for _ in range(resamples):
-        sampled_source_case_ids = [random_source.choice(source_case_ids) for _ in source_case_ids]
-        sampled_pairs = [
-            pair for source_case_id in sampled_source_case_ids for pair in pairs_by_source_case[source_case_id]
-        ]
-        for requirement in requirements:
-            key = (requirement.metric_name, requirement.statistic)
-            estimates[key].append(
-                _confidence_statistic(
-                    sampled_pairs,
-                    requirement,
-                    metric_specification(requirement.metric_name),
-                )
-            )
-
-    tail_probability = (1 - confidence_level) / 2
-    intervals = []
-    for requirement in requirements:
-        key = (requirement.metric_name, requirement.statistic)
-        samples = estimates[key]
-        intervals.append(
-            MetricConfidenceInterval(
-                metric_name=requirement.metric_name,
-                statistic=requirement.statistic,
-                confidence_level=confidence_level,
-                estimate=observed_statistics[key],
-                lower_bound=_percentile(samples, tail_probability),
-                upper_bound=_percentile(samples, 1 - tail_probability),
-                required_lower_bound=requirement.minimum_lower_bound,
-                required_upper_bound=requirement.maximum_upper_bound,
-            )
-        )
-    return tuple(intervals)
-
-
-def _confidence_statistic(
-    pairs: Sequence[PairedCaseResult],
-    requirement: ConfidenceIntervalRequirement,
-    specification: MetricSpecification,
-) -> float:
-    """Calculate one direction-normalized statistic from paired metric values."""
-
-    baseline_mean = sum(pair.baseline.metrics[requirement.metric_name] for pair in pairs) / len(pairs)
-    candidate_mean = sum(pair.candidate.metrics[requirement.metric_name] for pair in pairs) / len(pairs)
-    if requirement.statistic == "candidate_mean":
-        return candidate_mean
-
-    improvement = candidate_mean - baseline_mean
-    if specification.direction == "lower_is_better":
-        improvement = baseline_mean - candidate_mean
-    if requirement.statistic == "mean_improvement":
-        return improvement
-    if baseline_mean == 0:
-        # A resample of a few cases can draw a baseline that scored nothing (a correct rate of 0).
-        # Nothing can be lost from nothing, and any gain is the whole of it: the relative change is
-        # +1 for a gain, -1 for a loss, 0 for no change. Raising here aborted the whole gate.
-        relative_improvement = math.copysign(1.0, improvement) if improvement else 0.0
-    else:
-        relative_improvement = improvement / abs(baseline_mean)
-    if requirement.statistic == "relative_mean_improvement":
-        return relative_improvement
-    return -relative_improvement
-
-
-def _bootstrap_seed(
-    pairs_by_source_case: Mapping[str, Sequence[PairedCaseResult]],
-    source_case_ids: Sequence[str],
-    requirements: Sequence[ConfidenceIntervalRequirement],
-    confidence_level: float,
-    resamples: int,
-) -> str:
-    """Build a stable random seed so one evidence set always yields one decision."""
-
-    seed_material = [str(confidence_level), str(resamples)]
-    seed_material.extend(source_case_ids)
-    seed_material.extend(f"{item.metric_name}:{item.statistic}" for item in requirements)
-    for source_case_id in source_case_ids:
-        for pair in pairs_by_source_case[source_case_id]:
-            seed_material.append(pair.case_id)
-            seed_material.append(str(sorted(pair.baseline.metrics.items())))
-            seed_material.append(str(sorted(pair.candidate.metrics.items())))
-    return "|".join(seed_material)
-
-
-def _percentile(values: Sequence[float], probability: float) -> float:
-    """Return one linearly interpolated percentile from finite bootstrap estimates."""
-
-    ordered = sorted(values)
-    position = (len(ordered) - 1) * probability
-    lower_index = math.floor(position)
-    upper_index = math.ceil(position)
-    if lower_index == upper_index:
-        return ordered[lower_index]
-    lower_weight = upper_index - position
-    upper_weight = position - lower_index
-    return ordered[lower_index] * lower_weight + ordered[upper_index] * upper_weight
 
 
 __all__ = [

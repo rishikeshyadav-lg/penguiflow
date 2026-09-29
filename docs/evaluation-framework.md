@@ -1,7 +1,7 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0, E1 and E2 done** (this contract, the package, the neutral core, the general comparison,
-repeated resumable runs). E3–E9 are planned and marked as such. Written 2026-09-29.
+Status: **E0–E3 done** (this contract, the package, the neutral core, the general comparison, repeated
+resumable runs, public statistics). E4–E9 are planned and marked as such. Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -125,9 +125,25 @@ emits. A future change that alters a digest or an emitted event fails a test.
   - Rows come back in dataset, variant, repeat order whatever the concurrency. Latency the runner reports is
     kept; otherwise wall-clock latency is measured. A row read back from the file has `result.output = None`
     (the live object is not stored); answer, tool calls, metrics and errors are.
-- **E3 statistics:** the case-clustered paired bootstrap (the prompt is the resampling unit because repeats of
-  one prompt are not independent evidence), run-to-run noise, the minimum-detectable-effect multiplier
-  (1.96 + 0.8416), prompts needed to clear a bar, threshold proposal, verdict wording.
+- **E3 statistics (done, one part deferred):** `agent_evals.statistics`, `agent_evals.thresholds`,
+  `agent_evals.calibration`.
+  - The gate's case-clustered paired bootstrap moved out of `control_plane.py` unchanged (same seed
+    derivation, same percentile method); the gate now calls `bootstrap_paired_intervals`. The interval and
+    requirement types moved with it and the LCP re-exports the same objects. The prompt is the resampling
+    unit because repeats of one prompt are not independent evidence.
+  - Also public: `paired_bootstrap` (the plain mean-difference bootstrap used for calibration),
+    `standard_error_from_interval`, `prompts_needed_to_clear`, `accuracy_improvement_detectability`, and the
+    detection multiplier (1.959963985 + 0.8416212336 = 2.8016).
+  - `propose_thresholds` derives a `PromotionThresholds` from a baseline run, with the measurements and one
+    sentence per field; `baselines_from_run` builds its input from a `RepeatedRun`. `thresholds_version` names
+    a decision by its values.
+  - **Deliberate change:** in `PromotionThresholds` the measured fields (accuracy bar, latency and cost noise
+    floors, candidate floor, margin) have no defaults; the campaign's 0.115 and the like were one agent's
+    calibration. The rule defaults are unchanged. The campaign will supply its own defaults when it adopts the
+    package.
+  - **Deferred:** a generic `explain_verdict`. The campaign's is written in that agent's metric names and the
+    reviewer's units (answers right per 100, seconds, dollars); a generic one needs a decision on how metrics
+    declare their units and wording. Not started.
 - **E4–E9:** datasets and manifests, scorers, the domain-judge seam and golden-set validation, reports and
   an optional MLflow backend, an agent-agnostic runner service, and a three-agent proof.
 

@@ -4,6 +4,16 @@ Nothing in this package imports an agent framework. An agent takes part by suppl
 callable; scoring, comparison and statistics work on what that callable returns.
 """
 
+from .calibration import (
+    OwnerRules,
+    PromptBaseline,
+    accuracy_calibration,
+    baselines_from_run,
+    candidate_floor,
+    null_accuracy_margin,
+    null_repeat_noise,
+    propose_thresholds,
+)
 from .comparison import CaseResult, ComparisonRequest, ComparisonResult
 from .evaluation import (
     EvaluationBackend,
@@ -26,13 +36,30 @@ from .execution import JsonlRowSink, RepeatedRun, RowKey, RunRow, RunSettings, T
 from .evidence import EvidenceContext, EvidenceEvent, EvidenceSink, redact_attributes
 from .prediction import PredictionResult, PredictionStatus, ScoreResult, ScoreValue, normalize_scores, scorer_name
 from .runner import ComparisonRunner, Scorers, run_case_variant, run_cases, run_comparison
+from .statistics import (
+    DETECTION_MULTIPLIER,
+    BootstrapInterval,
+    ConfidenceIntervalRequirement,
+    MetricConfidenceInterval,
+    PairedPrompt,
+    accuracy_improvement_detectability,
+    bootstrap_paired_intervals,
+    confidence_statistic,
+    paired_bootstrap,
+    prompts_needed_to_clear,
+    standard_error_from_interval,
+)
 from .steps import GenericStep, GenericTrajectory
+from .thresholds import PromotionThresholds, thresholds_version, values_digest
 
 __all__ = [
+    "BootstrapInterval",
     "CaseResult",
     "ComparisonRequest",
     "ComparisonResult",
     "ComparisonRunner",
+    "ConfidenceIntervalRequirement",
+    "DETECTION_MULTIPLIER",
     "EvaluationBackend",
     "EvaluationCase",
     "EvaluationDataset",
@@ -42,18 +69,23 @@ __all__ = [
     "EvidenceEvent",
     "EvidenceSink",
     "GenericStep",
-    "JsonlRowSink",
     "GenericTrajectory",
+    "JsonlRowSink",
     "LocalEvaluationBackend",
     "Metric",
+    "MetricConfidenceInterval",
     "MetricDirection",
     "MetricSpecification",
     "MetricSummary",
+    "OwnerRules",
     "PairedCaseResult",
     "PairedEvaluationResult",
     "PairedMetricValue",
+    "PairedPrompt",
     "PredictionResult",
     "PredictionStatus",
+    "PromotionThresholds",
+    "PromptBaseline",
     "RepeatedRun",
     "RowKey",
     "RunOne",
@@ -64,11 +96,25 @@ __all__ = [
     "Scorers",
     "TransientError",
     "VariantCaseResult",
+    "accuracy_calibration",
+    "accuracy_improvement_detectability",
+    "baselines_from_run",
+    "bootstrap_paired_intervals",
+    "candidate_floor",
+    "confidence_statistic",
     "normalize_scores",
+    "null_accuracy_margin",
+    "null_repeat_noise",
+    "paired_bootstrap",
+    "prompts_needed_to_clear",
+    "propose_thresholds",
     "redact_attributes",
     "run_case_variant",
     "run_cases",
     "run_comparison",
     "run_repeated",
     "scorer_name",
+    "standard_error_from_interval",
+    "thresholds_version",
+    "values_digest",
 ]

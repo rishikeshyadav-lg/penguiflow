@@ -10,6 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from agent_evals import EvaluationRequest as PairedEvaluationRequest
+
 from ..contracts.evidence import EvidenceContext
 from ..evaluation.evaluation import (
     EvaluationCase,
@@ -159,7 +161,7 @@ def _job_from_payload(payload: Mapping[str, Any]) -> LearningJob:
     )
 
 
-def _request_payload(request: EvaluationRequest) -> dict[str, object]:
+def _request_payload(request: PairedEvaluationRequest) -> dict[str, object]:
     return {
         "evaluation_id": request.evaluation_id,
         "evidence_context": {
