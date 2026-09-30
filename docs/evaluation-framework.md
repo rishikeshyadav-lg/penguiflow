@@ -1,8 +1,8 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0–E8 done** (this contract, the package, the neutral core, the general comparison, repeated
-resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, and the policy layer).
-E9 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
+Status: **E0–E9 done** (this contract, the package, the neutral core, the general comparison, repeated
+resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, the policy layer, golden trajectories and shadow comparison).
+E10 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -173,7 +173,13 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   success metric and keeps the unvetoed score beside it), `policy_flag`. It detects and reports; it cannot
   prevent, and enforcement belongs in the agent's execution path. The matching gate rule is a written proposal
   only: `evaluation-policy-gate-proposal.md`.
-- **E9–E13:** see `evaluation-roadmap.md`.
+- **E9 golden trajectories, diff, shadow (done):** `GoldenTrajectory` (frozen run under one digest, tied to an
+  environment reference; approvals are history, not content), `refresh_golden` (refused without an approval that
+  names exactly this replacement), `diff_runs` (answer, tool sequence, changed argument *names*, cost and latency
+  deltas, guardrails, policy findings; a golden trajectory can be the reference), `shadow_compare` (a candidate
+  run in `dry_run` mode over recorded production inputs, reporting how often an answer-only comparison would
+  have been fooled). `dry_run` is a request: the agent must honour it; nothing here sandboxes tools or replays them.
+- **E10–E13:** see `evaluation-roadmap.md`.
 
 ## 7. Out of scope for now
 
