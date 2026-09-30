@@ -1,8 +1,8 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0–E7 done** (this contract, the package, the neutral core, the general comparison, repeated
-resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers).
-E8 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
+Status: **E0–E8 done** (this contract, the package, the neutral core, the general comparison, repeated
+resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, and the policy layer).
+E9 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -168,7 +168,12 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   **Not built, on purpose:** a per-step `latency_ms` on `GenericStep` (no adapter's native run records step
   timing, so nothing could fill it) and extra `PromotionThresholds` fields for a p95 bound (nothing consumes them
   until the E10 profiles).
-- **E8–E13:** see `evaluation-roadmap.md`.
+- **E8 policy layer (done):** `PolicyCheck` (forbidden tools, an allow-list, an effect registry with a permitted
+  scope, recorded denials; codes name kind, tool and step, never arguments), `PolicyVeto` (a violation zeroes the
+  success metric and keeps the unvetoed score beside it), `policy_flag`. It detects and reports; it cannot
+  prevent, and enforcement belongs in the agent's execution path. The matching gate rule is a written proposal
+  only: `evaluation-policy-gate-proposal.md`.
+- **E9–E13:** see `evaluation-roadmap.md`.
 
 ## 7. Out of scope for now
 
