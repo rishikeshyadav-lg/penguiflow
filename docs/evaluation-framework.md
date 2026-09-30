@@ -1,8 +1,8 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0–E11 done (offline)** (this contract, the package, the neutral core, the general comparison, repeated
-resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, the policy layer, golden trajectories and shadow comparison, reports with the eight-metric scorecard, and the judge seam).
-E12 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
+Status: **E0–E12 done (E11 offline)** (this contract, the package, the neutral core, the general comparison, repeated
+resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, the policy layer, golden trajectories and shadow comparison, reports with the eight-metric scorecard, the judge seam, and the agent-agnostic eval app).
+E13 is planned in `evaluation-roadmap.md`. Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -203,7 +203,21 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   `agent-evals` yet. Its wrapper is a callable `(case, output) -> JudgeVerdict` that builds the `GenericTrajectory`,
   calls `project_campaign_verification` and maps the result with its existing outcome codes; it needs no import of
   `agent_evals` (the protocols are structural), so it can be added with the next pin bump.
-- **E12–E13:** see `evaluation-roadmap.md`.
+- **E12 agent-agnostic runner service (done, deployed 2026-09-30):** in the campaign repo's `eval_app`,
+  `AgentUnderTest` (an agent's stages, stage functions and argument builder), `RunRequest.agent` (default
+  `campaign`), agents registered by naming them in `LCP_EVAL_AGENTS` as `module:attribute` (a bad name, a wrong
+  type or a duplicate refuses to start), and a `WorkspaceStore` protocol (pull, push_file, push_tree) that the
+  Databricks tree and the tests' local tree both satisfy. A plain-Python `toy` agent (no campaign code, no model
+  calls; the same `runs.jsonl` keys; reruns skip rows already written, error rows included) runs on the deployed
+  app by configuration alone. The 13 existing eval-app tests pass unchanged; the campaign two-prompt smoke gave
+  2 of 2 verified on the new bundle ($0.659 against $0.828 before; one prompt took a shorter tool path, which is
+  run-to-run variation). **Limits, stated plainly:** the campaign agent's stage functions are still one script
+  (`scripts/evaluate_mined_candidates.py`) that imports campaign code at load; its prompts come from MLflow
+  investigations and its judge from the campaign delivery table, so a real second agent has to bring its own stage
+  functions and judge; the app keeps runs in memory (a restart forgets run ids) and runs one stage at a time. The
+  deployed `agent-evals` package is not part of the bundle: the campaign pins the LCP to a pushed GitHub commit that
+  predates it.
+- **E13:** see `evaluation-roadmap.md`.
 
 ## 7. Out of scope for now
 
