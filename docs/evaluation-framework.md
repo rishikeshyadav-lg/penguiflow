@@ -1,8 +1,8 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0–E9 done** (this contract, the package, the neutral core, the general comparison, repeated
-resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, the policy layer, golden trajectories and shadow comparison).
-E10 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
+Status: **E0–E10 done** (this contract, the package, the neutral core, the general comparison, repeated
+resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, the policy layer, golden trajectories and shadow comparison, and reports with the eight-metric scorecard).
+E11 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -179,7 +179,18 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   deltas, guardrails, policy findings; a golden trajectory can be the reference), `shadow_compare` (a candidate
   run in `dry_run` mode over recorded production inputs, reporting how often an answer-only comparison would
   have been fooled). `dry_run` is a request: the agent must honour it; nothing here sandboxes tools or replays them.
-- **E10–E13:** see `evaluation-roadmap.md`.
+- **E10 reports and the eight-metric scorecard (done):** `RunRecord` (settings, bundle, dataset and metric
+  versions, digest, verdict-grade flag); `build_scorecard` with the article's eight entries (success rate, tool
+  selection, argument correctness, plan adherence, execution efficiency, cost per task, p95 latency, policy
+  violations), each with a 95% range and the runs used and excluded; a metric that could not be computed is
+  listed as "not measured" with the reason, never omitted; the success-versus-selection audit line; failed runs
+  listed by case and error *type* (messages only on request). `report_json` and `report_markdown` give every
+  agent the same structure. Threshold profiles: `EXAMPLE_PROFILES` (`ci_gate`, `production_slo`; the article's
+  numbers, labelled as proposals) and `derived_profile` (from `propose_thresholds`); `evaluate_profile` holds a
+  run to one. `log_report_to_mlflow` (optional, `agent-evals[mlflow]`) logs the scorecard's own numbers, so a
+  report read back from MLflow equals the local one.
+  Still open from E3: a generic `explain_verdict`. Plan adherence stays "not measured" until the E11 judge.
+- **E11–E13:** see `evaluation-roadmap.md`.
 
 ## 7. Out of scope for now
 

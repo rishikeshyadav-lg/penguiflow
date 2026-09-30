@@ -41,15 +41,19 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "ruff" },
 ]
+mlflow = [
+    { name = "mlflow" },
+]
 
 [package.metadata]
 requires-dist = [
+    { name = "mlflow", marker = "extra == 'mlflow'", specifier = ">=2.10" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.8" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.2" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["mlflow", "dev"]
 
 [[package]]
 name = "aiofile"
