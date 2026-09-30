@@ -112,6 +112,9 @@ emits. A future change that alters a digest or an emitted event fails a test.
 
 ## 6. Planned behaviour, by milestone
 
+Milestones E4 onward are laid out, with goals, method, what complete looks like and how each is verified, in
+[`evaluation-roadmap.md`](evaluation-roadmap.md); the old E4–E9 entry below is superseded by it.
+
 - **E1 generalise the core (done):** variants with arbitrary `config`; `ComparisonRequest` over 1..N variants;
   several scorers per run (a metric name produced twice fails the case visibly); `PredictionResult` and
   `ScoreResult`; paired views for any two variants. The old paired backend runs through the same engine.
