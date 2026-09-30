@@ -4,8 +4,9 @@ Status: **E0–E13 built** (2026-09-30). The roadmap in `evaluation-roadmap.md` 
 the contract and package, the general comparison, repeated resumable runs, public statistics, datasets and suites,
 the outcome, trajectory, operational and policy layers, golden trajectories and shadow comparison, reports with the
 eight-metric scorecard, the judge seam, the agent-agnostic eval app (deployed), and the three-agent proof.
-What is *not* done is listed where it applies: a generic `explain_verdict`, a measured agreement for the
-judge-backed metrics (E11 was built and tested offline; no labelled trajectories exist), and publishing.
+What is *not* done is listed where it applies: a generic `explain_verdict` and a measured agreement for the
+judge-backed metrics (E11 was built and tested offline; no labelled trajectories exist). Decided against on
+2026-09-30: publishing to PyPI (the package stays in-house) and the policy-violation gate rule.
 Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
@@ -175,8 +176,8 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
 - **E8 policy layer (done):** `PolicyCheck` (forbidden tools, an allow-list, an effect registry with a permitted
   scope, recorded denials; codes name kind, tool and step, never arguments), `PolicyVeto` (a violation zeroes the
   success metric and keeps the unvetoed score beside it), `policy_flag`. It detects and reports; it cannot
-  prevent, and enforcement belongs in the agent's execution path. The matching gate rule is a written proposal
-  only: `evaluation-policy-gate-proposal.md`.
+  prevent, and enforcement belongs in the agent's execution path. The matching gate rule was proposed and then
+  declined by the owner (internal tool): `evaluation-policy-gate-proposal.md`.
 - **E9 golden trajectories, diff, shadow (done):** `GoldenTrajectory` (frozen run under one digest, tied to an
   environment reference; approvals are history, not content), `refresh_golden` (refused without an approval that
   names exactly this replacement), `diff_runs` (answer, tool sequence, changed argument *names*, cost and latency

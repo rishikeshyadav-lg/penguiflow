@@ -4,8 +4,11 @@ Agent-agnostic evaluation. Bring any agent (any framework, or a plain function),
 a scorer; get repeatable runs, honest statistics and a report. This package has **no required
 dependencies** and imports nothing from any agent framework.
 
+In-house: install the pinned source archive of the owner's fork (the campaign repo pins it the same way). It is
+not published to PyPI, and that is a decision.
+
 ```bash
-pip install agent-evals
+uv pip install "agent-evals @ https://github.com/rishikeshyadav-lg/penguiflow/archive/<commit>.tar.gz#subdirectory=packages/agent-evals"
 ```
 
 ## A few lines to evaluate any agent
@@ -47,7 +50,7 @@ Four layers, each with its own scorers, and a report that lists what could not b
 
 Also: datasets on disk with frozen manifests, seeded disjoint splits, regression and capability suites, repeated
 resumable runs, golden trajectories and shadow comparison, threshold calibration from a baseline, an optional
-domain-judge seam with an agreement harness, and an optional MLflow log (`pip install agent-evals[mlflow]`).
+domain-judge seam with an agreement harness, and an optional MLflow log (the `mlflow` extra).
 
 ## What it is, and is not
 
@@ -60,7 +63,7 @@ domain-judge seam with an agreement harness, and an optional MLflow log (`pip in
 
 ## Status
 
-`0.1.0`, unpublished. Design, milestones and what is deliberately not built:
+`0.1.0`, in-house (not published to PyPI, by the owner's decision). Design, milestones and what is deliberately not built:
 [`docs/evaluation-framework.md`](https://github.com/hurtener/penguiflow/blob/main/docs/evaluation-framework.md)
 and [`docs/evaluation-roadmap.md`](https://github.com/hurtener/penguiflow/blob/main/docs/evaluation-roadmap.md).
-Before publishing, see `docs/agent-evals-publishing-checklist.md`.
+How it is distributed, and the checklist kept in case that changes: `docs/agent-evals-publishing-checklist.md`.

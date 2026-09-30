@@ -1,6 +1,22 @@
-# Publishing checklist: `agent-evals`
+# Distribution of `agent-evals`: in-house, not on PyPI
 
-Status: **not published, and not to be published without the owner's go.** Written 2026-09-30.
+Status: **decided 2026-09-30: the owner is keeping this in-house and is not publishing to PyPI or open-sourcing it
+for now.** Nothing below is to be done unless that changes. Written 2026-09-30.
+
+## How it is distributed instead
+Consumers install a pinned source archive of the owner's fork, not a package index:
+
+- the campaign repo declares `agent-evals`, `learning-control-plane` and `penguiflow` as sources in
+  `[tool.uv.sources]`, all at the same commit of `rishikeshyadav-lg/penguiflow` (currently `e1be846`);
+- to ship a change: push it to the fork's `feat/lcp-framework-agnostic`, then change the commit in those three source
+  lines in the campaign's `pyproject.toml`, run `uv lock`, and run the campaign tests;
+- to try it locally without the pin: `uv pip install -e packages/agent-evals`.
+
+Keep the name `agent-evals` unchanged: the import name and the pin already use it, and with no publishing the
+PyPI name clash below does not matter.
+
+## If publishing is ever reconsidered
+The checklist below is the plan from when it was still open; it is kept, not scheduled.
 
 ## The name
 - Checked 2026-09-30 (read-only, `https://pypi.org/pypi/<name>/json`): `agent-evals` and `agent_evals` returned 404,

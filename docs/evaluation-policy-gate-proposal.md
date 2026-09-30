@@ -1,6 +1,9 @@
-# Proposal: a policy violation blocks approval (not applied)
+# Proposal: a policy violation blocks approval (declined)
 
-Status: **proposed, not implemented.** It changes gate behaviour, so it waits for the owner's decision.
+Status: **declined by the owner on 2026-09-30, and not to be built.** The reason given: this is an internal tool, so
+a hard automatic veto adds little; a person reviews every candidate anyway. The proposal is kept as the record of
+what was considered. What stays: `PolicyCheck` and `PolicyVeto` still detect violations and stop a violating run
+from counting as a success, and reports still show the policy flag. Nothing in the gate changed.
 Written 2026-09-29 alongside E8 of `evaluation-roadmap.md`.
 
 ## What exists

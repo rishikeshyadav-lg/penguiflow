@@ -313,3 +313,12 @@ hides the tail that users feel.
 - Stale docs fixed: `evaluation/scoring.md` (intervals were called "the next milestone") and `architecture.md`
   (MLflow's role, and the same-bundle guarantee, which is the host runner's job and is not checked).
 - Nothing is published; see `agent-evals-publishing-checklist.md`.
+
+### Decisions taken after the build (2026-09-30)
+- The local commits were pushed to the fork and the campaign's pin was bumped to `e1be846`, so the campaign can now
+  import `agent_evals`.
+- Not publishing to PyPI or open-sourcing: the package stays in-house (`agent-evals-publishing-checklist.md` now
+  describes in-house distribution and keeps the old checklist only in case that changes).
+- The "policy violation blocks approval" gate rule is declined; the policy check still detects and reports.
+- The workspace calibration (bar 0.092) replaced the laptop one (0.115) in the campaign gate; see the campaign
+  decision record, P15.
