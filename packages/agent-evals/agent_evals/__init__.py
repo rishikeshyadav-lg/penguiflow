@@ -15,6 +15,16 @@ from .calibration import (
     propose_thresholds,
 )
 from .comparison import CaseResult, ComparisonRequest, ComparisonResult
+from .datasets import (
+    DatasetManifest,
+    MetricMismatchError,
+    Suite,
+    load_dataset,
+    load_frozen_dataset,
+    load_manifest,
+    save_dataset,
+    save_manifest,
+)
 from .evaluation import (
     EvaluationBackend,
     EvaluationCase,
@@ -36,6 +46,7 @@ from .execution import JsonlRowSink, RepeatedRun, RowKey, RunRow, RunSettings, T
 from .evidence import EvidenceContext, EvidenceEvent, EvidenceSink, redact_attributes
 from .prediction import PredictionResult, PredictionStatus, ScoreResult, ScoreValue, normalize_scores, scorer_name
 from .runner import ComparisonRunner, Scorers, run_case_variant, run_cases, run_comparison
+from .splits import assert_disjoint, split_by_group
 from .statistics import (
     DETECTION_MULTIPLIER,
     BootstrapInterval,
@@ -50,6 +61,7 @@ from .statistics import (
     standard_error_from_interval,
 )
 from .steps import GenericStep, GenericTrajectory
+from .suites import SuiteRule, SuiteVerdict, case_scores, run_suite, suite_verdict
 from .thresholds import PromotionThresholds, thresholds_version, values_digest
 
 __all__ = [
@@ -60,6 +72,7 @@ __all__ = [
     "ComparisonRunner",
     "ConfidenceIntervalRequirement",
     "DETECTION_MULTIPLIER",
+    "DatasetManifest",
     "EvaluationBackend",
     "EvaluationCase",
     "EvaluationDataset",
@@ -75,6 +88,7 @@ __all__ = [
     "Metric",
     "MetricConfidenceInterval",
     "MetricDirection",
+    "MetricMismatchError",
     "MetricSpecification",
     "MetricSummary",
     "OwnerRules",
@@ -94,14 +108,22 @@ __all__ = [
     "ScoreResult",
     "ScoreValue",
     "Scorers",
+    "Suite",
+    "SuiteRule",
+    "SuiteVerdict",
     "TransientError",
     "VariantCaseResult",
     "accuracy_calibration",
     "accuracy_improvement_detectability",
+    "assert_disjoint",
     "baselines_from_run",
     "bootstrap_paired_intervals",
     "candidate_floor",
+    "case_scores",
     "confidence_statistic",
+    "load_dataset",
+    "load_frozen_dataset",
+    "load_manifest",
     "normalize_scores",
     "null_accuracy_margin",
     "null_repeat_noise",
@@ -113,8 +135,13 @@ __all__ = [
     "run_cases",
     "run_comparison",
     "run_repeated",
+    "run_suite",
+    "save_dataset",
+    "save_manifest",
     "scorer_name",
+    "split_by_group",
     "standard_error_from_interval",
+    "suite_verdict",
     "thresholds_version",
     "values_digest",
 ]
