@@ -13,12 +13,13 @@ type is shown unless the caller asks for messages.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any
 
 from .datasets import DatasetManifest
 from .execution import RepeatedRun
+from .judging import AgreementReport
 from .operational import OperationalSummary, operational_summary
 from .policy import policy_flag
 from .profiles import ProfileVerdict
@@ -177,8 +178,13 @@ def build_scorecard(
     resamples: int = 2_000,
     seed: int = 0,
     include_error_messages: bool = False,
+    judge_agreement: AgreementReport | None = None,
 ) -> Scorecard:
-    """Build the eight-entry scorecard for one variant of a run."""
+    """Build the eight-entry scorecard for one variant of a run.
+
+    Plan adherence comes from a judge and is experimental; when it is measured, the entry says how often the
+    judge agreed with labelled trajectories (`judge_agreement`), or that this has not been measured.
+    """
 
     rows = run.rows_for(variant_id)
     if not rows:
@@ -210,6 +216,9 @@ def build_scorecard(
             resamples=resamples, seed=seed, missing_reason="no efficiency scorer is configured",
         ),
     ]  # fmt: skip
+
+    if entries[3].measured:
+        entries[3] = replace(entries[3], reason=_judge_note(judge_agreement))
 
     cost_means: dict[str, list[float]] = {}
     for row in rows:
@@ -276,6 +285,12 @@ def build_scorecard(
     return Scorecard(entries=tuple(entries), audit=tuple(audit), failures=tuple(failures))
 
 
+def _judge_note(agreement: AgreementReport | None) -> str:
+    if agreement is None:
+        return "experimental judge: agreement with labels not measured"
+    return f"experimental judge: agreed with labels on {agreement.agree} of {agreement.total} ({agreement.rate:.0%})"
+
+
 @dataclass(frozen=True, slots=True)
 class Report:
     """Everything one run's report says."""
@@ -299,6 +314,7 @@ def build_report(
     resamples: int = 2_000,
     seed: int = 0,
     include_error_messages: bool = False,
+    judge_agreement: AgreementReport | None = None,
 ) -> Report:
     """Assemble a report: the suite's verdict, the scorecard, and the operational summary."""
 
@@ -308,7 +324,7 @@ def build_report(
         suite=suite_verdict(run, variant_id, manifest, rule or SuiteRule(metrics.success, resamples=resamples)),
         scorecard=build_scorecard(
             run, variant_id, metrics=metrics, summary=summary, resamples=resamples, seed=seed,
-            include_error_messages=include_error_messages,
+            include_error_messages=include_error_messages, judge_agreement=judge_agreement,
         ),
         operational=summary,
         profiles=tuple(profiles),

@@ -1,8 +1,8 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0–E10 done** (this contract, the package, the neutral core, the general comparison, repeated
-resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, the policy layer, golden trajectories and shadow comparison, and reports with the eight-metric scorecard).
-E11 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
+Status: **E0–E11 done (offline)** (this contract, the package, the neutral core, the general comparison, repeated
+resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, the policy layer, golden trajectories and shadow comparison, reports with the eight-metric scorecard, and the judge seam).
+E12 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -190,7 +190,20 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   run to one. `log_report_to_mlflow` (optional, `agent-evals[mlflow]`) logs the scorecard's own numbers, so a
   report read back from MLflow equals the local one.
   Still open from E3: a generic `explain_verdict`. Plan adherence stays "not measured" until the E11 judge.
-- **E11–E13:** see `evaluation-roadmap.md`.
+- **E11 domain judges and judge validation (done offline):** `DomainJudge` and `JudgeClient` protocols (no
+  provider assumed), `JudgeScorer` (outcome labels to scores; an unnamed label is an error), and the agreement
+  harness (`validate_judge`, `agreement_report`: agreement, per-outcome counts, a confusion table, every
+  disagreement listed, a judge that raises counted as a disagreement). `plan_adherence` and
+  `multi_step_coherence` are judge-backed scorers, **experimental**: the judge sees the announced plan, tool names,
+  argument names and failure status, never values, results or the question unless asked; a scorecard that uses one
+  says how often the judge agreed with labelled trajectories, or that this has not been measured.
+  **Not done:** no plan-adherence agreement has been measured, because no labelled trajectories for it exist (the
+  campaign's 83 golden labels grade its answer judge, not plan adherence); a live judge run would only be a smoke
+  check. **Campaign wrapper not added:** the campaign consumes the LCP through a pin that does not include
+  `agent-evals` yet. Its wrapper is a callable `(case, output) -> JudgeVerdict` that builds the `GenericTrajectory`,
+  calls `project_campaign_verification` and maps the result with its existing outcome codes; it needs no import of
+  `agent_evals` (the protocols are structural), so it can be added with the next pin bump.
+- **E12–E13:** see `evaluation-roadmap.md`.
 
 ## 7. Out of scope for now
 
