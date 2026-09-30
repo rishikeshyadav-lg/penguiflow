@@ -268,3 +268,48 @@ E8–E10 second pass; E11–E13 third (E11 and E12 involve paid or deployed step
 - The deferred generic `explain_verdict` from E3 needs a decision on how metrics declare units and wording (fits E10).
 - Whether to push the local commits, and when to bump the campaign's pin to include `agent-evals`.
 - The calibration decision (0.092 vs 0.115) is separate and still open.
+
+
+---
+
+## Result: article coverage re-scored (2026-09-30, end of E13)
+
+"Covered" means built, tested and, where a number was recorded from older code, reproducing it.
+
+| Article item | Now | Note |
+|---|---|---|
+| Task success from real state | covered | scorers plus `StateCheck` |
+| pass@k, pass^k, consistency | covered | functions in `repeatability`; **not one of the eight scorecard entries** |
+| Partial credit; regression vs capability suites | covered | `WeightedRubric`; `suite_verdict` |
+| Tool selection, argument correctness | covered | argument specs are per tool, supplied by the user |
+| Plan adherence, coherence | partly | judge-backed and experimental; agreement with labels **not measured** (no labelled trajectories exist) |
+| Invariants (required, forbidden, tracked) | covered | |
+| Success-versus-selection audit signal | covered | on the scorecard when both are measured |
+| Execution efficiency, step band | partly | scorers exist; efficiency shows only when a scorer produces it, and the band is not a scorecard entry |
+| Loop guard | partly | offline detector and a runner helper; the hard stop stays in the agent, by design |
+| p95 latency, cost per task | covered | cost needs the runner to report it |
+| Policy-violation flag | covered | detects and reports; enforcement is out of scope, by design |
+| Golden trajectories | covered | re-approval enforced |
+| Shadow traffic with trajectory diff | covered as a comparison | `dry_run` must be honoured by the agent; not yet run on real production traffic |
+| Production-trace loop | covered | the LCP, unchanged |
+| Eight-metric dashboard | eight entries always; how many are *measured* depends on what an agent supplies | see below |
+
+### What the proofs measured
+| Run | Measured of 8 | Not measured, and why |
+|---|---|---|
+| Campaign agent, `baseline-final` (existing evidence, no new spend) | 3: success 0.839 (0.720 to 0.946), cost $0.576, p95 latency 126.6 s | no trajectory scorers or policy check were run on it |
+| Live LangChain agent (nano endpoint, 6 cases, 4,254 tokens) | 5: success, tool selection, argument correctness, p95 (2.5 s), policy | cost (runner reports tokens, not dollars), efficiency (no scorer), plan adherence (no judge) |
+| Plain Python function (quickstart, 32 lines of glue) | 5 | as above |
+| Recorded PenguiFlow, LangChain (two shapes) and mock runs | identical scores on identical paths | |
+| Hostile mock (timeout, malformed output, exception, loop, forbidden call) | no run dropped; each failure listed by kind; flag raised | |
+
+One finding from the campaign run: its **p95 latency is 127 s against a 55 s mean**, with a range to 274 s. The mean
+hides the tail that users feel.
+
+### Deviations from the E13 plan
+- The "PenguiFlow toy agent" is a recorded native run converted by the LCP's PenguiFlow adapter, not a live agent
+  (no LiteLLM in this environment).
+- The LangChain run used a Databricks nano endpoint through `databricks_langchain`.
+- Stale docs fixed: `evaluation/scoring.md` (intervals were called "the next milestone") and `architecture.md`
+  (MLflow's role, and the same-bundle guarantee, which is the host runner's job and is not checked).
+- Nothing is published; see `agent-evals-publishing-checklist.md`.

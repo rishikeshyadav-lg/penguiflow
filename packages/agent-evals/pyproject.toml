@@ -28,6 +28,7 @@ Homepage = "https://github.com/hurtener/penguiflow"
 
 [tool.setuptools]
 packages = { find = { include = ["agent_evals*"] } }
+package-data = { agent_evals = ["py.typed"] }
 license-files = ["LICENSE"]
 
 [tool.ruff]

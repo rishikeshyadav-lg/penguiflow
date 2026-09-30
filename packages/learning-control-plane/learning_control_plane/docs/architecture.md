@@ -18,8 +18,11 @@ Production agent ──► OpenTelemetry / MLflow evidence store
                          scoped activation + receipt
 ```
 
-MLflow stores traces, datasets, scores, artifacts, and lineage. It does not decide
-whether an asset should be promoted. The control plane owns that decision through
+MLflow stores the traces the host records and the redacted evidence records the control
+plane emits (as tags, metrics and JSON artifacts, through `MlflowEvidenceSink`), and
+`agent_evals` can log an evaluation report to it. The control plane does not keep
+evaluation datasets or scores in MLflow. It does not decide whether an asset should be
+promoted. The control plane owns that decision through
 versioned policy and recorded human approval.
 
 ## MVP invariants
@@ -27,8 +30,11 @@ versioned policy and recorded human approval.
 - The only candidate asset is an advisory skill.
 - A candidate cannot grant permissions, force a tool call, run code, or alter a
   flow graph.
-- Baseline and candidate use the same immutable agent bundle, model, tool catalog,
-  evaluation data, and metric version.
+- Baseline and candidate should use the same immutable agent bundle, model, tool catalog,
+  evaluation data, and metric version. The host's runner has to uphold this: the control
+  plane fixes the evaluation data and metric version in the request and requires that only
+  the candidate carries a skill, but it does not check that the two runs used the same
+  bundle, model or tools.
 - The promotion cohort is held out from candidate selection.
 - Every decision records candidate, evidence, policy, scope, reviewer, and result.
 - Every candidate, evaluation cohort, gate decision, approval, authorization, and

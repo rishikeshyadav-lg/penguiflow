@@ -32,6 +32,12 @@ metrics must be at least their threshold, while lower-is-better metrics must be
 at most their threshold. This prevents a candidate from passing merely because
 it improved over a weak baseline while still missing an acceptable floor.
 
-This is descriptive evidence for the deterministic MVP gate, not yet a confidence
-claim. Statistical confidence intervals and sample-size rules remain the next
-milestone.
+The means and improvements above are descriptive. The gate's confidence claim comes
+from case-clustered bootstrap intervals: a `PromotionPolicy` lists
+`confidence_interval_requirements`, and each one is checked against a percentile
+interval (`confidence_level`, `bootstrap_resamples`) computed by
+`agent_evals.statistics.bootstrap_paired_intervals`, which resamples whole source
+cases so the repeats of one case stay together. Sample-size rules are expressed as
+`minimum_complete_pairs_per_source_case` and the detectability arithmetic in
+`agent_evals.statistics.accuracy_improvement_detectability`; the thresholds
+themselves are calibrated per agent (`agent_evals.calibration.propose_thresholds`).

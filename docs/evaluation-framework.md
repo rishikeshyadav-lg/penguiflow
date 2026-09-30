@@ -1,8 +1,12 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0–E12 done (E11 offline)** (this contract, the package, the neutral core, the general comparison, repeated
-resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers, the policy layer, golden trajectories and shadow comparison, reports with the eight-metric scorecard, the judge seam, and the agent-agnostic eval app).
-E13 is planned in `evaluation-roadmap.md`. Written 2026-09-29.
+Status: **E0–E13 built** (2026-09-30). The roadmap in `evaluation-roadmap.md` has been carried out end to end:
+the contract and package, the general comparison, repeated resumable runs, public statistics, datasets and suites,
+the outcome, trajectory, operational and policy layers, golden trajectories and shadow comparison, reports with the
+eight-metric scorecard, the judge seam, the agent-agnostic eval app (deployed), and the three-agent proof.
+What is *not* done is listed where it applies: a generic `explain_verdict`, a measured agreement for the
+judge-backed metrics (E11 was built and tested offline; no labelled trajectories exist), and publishing.
+Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -217,7 +221,9 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   functions and judge; the app keeps runs in memory (a restart forgets run ids) and runs one stage at a time. The
   deployed `agent-evals` package is not part of the bundle: the campaign pins the LCP to a pushed GitHub commit that
   predates it.
-- **E13:** see `evaluation-roadmap.md`.
+- **E13 three-agent proof, article re-score, packaging readiness (done):** the proofs and the re-scored article
+  coverage are in `evaluation-roadmap.md` (Result section); quickstart and live examples in `examples/`;
+  `docs/agent-evals-publishing-checklist.md` (nothing published).
 
 ## 7. Out of scope for now
 
