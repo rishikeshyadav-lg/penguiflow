@@ -157,8 +157,8 @@ def bootstrap_paired_intervals(
                 statistic=requirement.statistic,
                 confidence_level=confidence_level,
                 estimate=observed_statistics[key],
-                lower_bound=_percentile(samples, tail_probability),
-                upper_bound=_percentile(samples, 1 - tail_probability),
+                lower_bound=percentile(samples, tail_probability),
+                upper_bound=percentile(samples, 1 - tail_probability),
                 required_lower_bound=requirement.minimum_lower_bound,
                 required_upper_bound=requirement.maximum_upper_bound,
             )
@@ -215,7 +215,7 @@ def _bootstrap_seed(
     return "|".join(seed_material)
 
 
-def _percentile(values: Sequence[float], probability: float) -> float:
+def percentile(values: Sequence[float], probability: float) -> float:
     """Return one linearly interpolated percentile from finite bootstrap estimates."""
 
     ordered = sorted(values)
@@ -378,6 +378,7 @@ __all__ = [
     "bootstrap_paired_intervals",
     "confidence_statistic",
     "paired_bootstrap",
+    "percentile",
     "prompts_needed_to_clear",
     "standard_error_from_interval",
 ]

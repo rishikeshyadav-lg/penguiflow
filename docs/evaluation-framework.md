@@ -1,7 +1,8 @@
 # The agent-agnostic evaluation framework (`agent-evals`)
 
-Status: **E0–E3 done** (this contract, the package, the neutral core, the general comparison, repeated
-resumable runs, public statistics). E4–E9 are planned and marked as such. Written 2026-09-29.
+Status: **E0–E7 done** (this contract, the package, the neutral core, the general comparison, repeated
+resumable runs, public statistics, datasets and suites, and the outcome, trajectory and operational scorers).
+E8 onward is planned in `evaluation-roadmap.md`. Written 2026-09-29.
 
 `agent-evals` lets you evaluate any agent, whatever framework it is written in: give it a dataset, a
 function that runs the agent, and one or more scorers; it runs, compares variants, and reports with
@@ -147,8 +148,27 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   - **Deferred:** a generic `explain_verdict`. The campaign's is written in that agent's metric names and the
     reviewer's units (answers right per 100, seconds, dollars); a generic one needs a decision on how metrics
     declare their units and wording. Not started.
-- **E4–E9:** datasets and manifests, scorers, the domain-judge seam and golden-set validation, reports and
-  an optional MLflow backend, an agent-agnostic runner service, and a three-agent proof.
+- **E4 datasets and suites (done):** `save_dataset` / `load_dataset` (JSON, JSONL, CSV; byte-identical on a
+  save, load, save round trip); `DatasetManifest` (ids, digest, suite, expected metric; never case text);
+  `run_suite` checks the digest and the metric before any case runs; `split_by_group` (lifted from the campaign's
+  bank builder, reproduces `banks_v1` exactly); `suite_verdict`: a regression suite needs a hard pass rate, a
+  capability suite reports partial credit with an interval and no pass or fail. A failed repeat counts as 0.
+- **E5 outcome layer (done):** `ExactMatch`, `Contains`, `RegexMatch`, `NumericMatch` (with `Tolerance`),
+  `StateCheck` (success judged on the world's state, not the agent's claim), `WeightedRubric` / `score_rubric`
+  (partial credit; agrees with the LCP rubric on all 1,024 status combinations), `pass_at_k`, `pass_hat_k`
+  (unbiased estimators) and `consistency_label`.
+- **E6 trajectory layer (done):** `tool_selection_accuracy`, `sequence_matches` (exact, in_order, any_order),
+  `ArgumentCorrectness` (syntactic and semantic levels, codes only), invariants (`Required`, `Forbidden`,
+  `AllowedTools`, `MaxCalls`, `Tracked`) and `selection_gap`, an audit signal and not a verdict.
+- **E7 operational layer (done):** `operational_summary` (p50/p95/p99 latency and cost with case-clustered
+  intervals, cost per task, mean steps), `StepCount`, `ExecutionEfficiency`, expected step bands
+  (`step_band_from_baseline`, `WithinStepBand`; under the band alarms like over), `find_loop` / `LoopGuard` /
+  `NoLoop` (the same action, or a short cycle, three times back to back), `regression_status` (ok / alert /
+  block). A run's latency is the runner's reported figure, else wall-clock measured by the executor.
+  **Not built, on purpose:** a per-step `latency_ms` on `GenericStep` (no adapter's native run records step
+  timing, so nothing could fill it) and extra `PromotionThresholds` fields for a p95 bound (nothing consumes them
+  until the E10 profiles).
+- **E8–E13:** see `evaluation-roadmap.md`.
 
 ## 7. Out of scope for now
 
