@@ -204,10 +204,12 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   says how often the judge agreed with labelled trajectories, or that this has not been measured.
   **Not done:** no plan-adherence agreement has been measured, because no labelled trajectories for it exist (the
   campaign's 83 golden labels grade its answer judge, not plan adherence); a live judge run would only be a smoke
-  check. **Campaign wrapper not added:** the campaign consumes the LCP through a pin that does not include
-  `agent-evals` yet. Its wrapper is a callable `(case, output) -> JudgeVerdict` that builds the `GenericTrajectory`,
-  calls `project_campaign_verification` and maps the result with its existing outcome codes; it needs no import of
-  `agent_evals` (the protocols are structural), so it can be added with the next pin bump.
+  check. **Campaign wrapper not added as a `DomainJudge`:** the campaign pin now includes `agent-evals`, but its judge
+  is still the stage in `scripts/evaluate_mined_candidates.py`, which `judge-v2` calls (see the E12 follow-up). A
+  `DomainJudge` wrapper, a callable `(case, output) -> JudgeVerdict` that builds the `GenericTrajectory`, calls
+  `project_campaign_verification` and maps the result with its existing outcome codes, is still needed to measure the
+  judge's agreement with labels with `validate_judge`; it needs no import of `agent_evals` (the protocols are
+  structural).
 - **E12 agent-agnostic runner service (done, deployed 2026-09-30):** in the campaign repo's `eval_app`,
   `AgentUnderTest` (an agent's stages, stage functions and argument builder), `RunRequest.agent` (default
   `campaign`), agents registered by naming them in `LCP_EVAL_AGENTS` as `module:attribute` (a bad name, a wrong
@@ -219,9 +221,24 @@ Milestones E4 onward are laid out, with goals, method, what complete looks like 
   run-to-run variation). **Limits, stated plainly:** the campaign agent's stage functions are still one script
   (`scripts/evaluate_mined_candidates.py`) that imports campaign code at load; its prompts come from MLflow
   investigations and its judge from the campaign delivery table, so a real second agent has to bring its own stage
-  functions and judge; the app keeps runs in memory (a restart forgets run ids) and runs one stage at a time. The
-  deployed `agent-evals` package is not part of the bundle: the campaign pins the LCP to a pushed GitHub commit that
-  predates it.
+  functions and judge; the app keeps runs in memory (a restart forgets run ids) and runs one stage at a time. (When
+  this was first deployed the bundle did not include `agent-evals`; the follow-up below fixes that.)
+- **E12 follow-up, the app's baseline and judge stages on the run engine (done, deployed 2026-10-01):** campaign
+  repo branch `eval/stages-on-library` (from `lcp/merge-dev`; `eval_app/library_stages.py`, `campaign_runner.py`,
+  `library_rows.py`). `baseline-v2` runs the baseline on `run_repeated` with a `JsonlRowSink`, which closes two of
+  the gaps listed above: runs can go several at once (`concurrency`, default 1), with a time limit (`timeout_s`) and
+  retries of temporary failures (`max_retries`), and `retry_errors` redoes failed runs on a resubmit. `judge-v2` hands
+  rows to the campaign's own judge, which gained one optional argument. The third gap is closed in `RunManager`: a
+  failed final push marks the run failed and keeps the local copy (an `UNSAVED` marker), and the next run of that
+  name saves it first or refuses to start. The earlier stages are unchanged and still registered. Two traps found:
+  the library writes a tool call's status as `ok`/`error` (the judge reads any status outside `completed`,
+  `completed_no_result`, `result` as an error) and a good run with `"error": null` (the judge decides failure with
+  `"error" in row`); `CampaignRowSink` and `legacy_shaped_row` put rows back in the shape the judge reads. Old
+  runs files carry no `case_id` and are refused by `baseline-v2` rather than resumed. Checks: campaign suite
+  2,215 passed + 1 expected failure; live on the redeployed app, `judge-v2` on a copy of the recorded smoke-3 runs
+  gave rows identical to the old judge's, and `baseline-v2` on the same two prompts gave 2 of 2 verified at $0.656
+  (one prompt took a shorter tool path, run-to-run variation). **Not shown live:** concurrency above 1 on the real
+  agent (its safety is unmeasured), `retry_errors` and the failed-push path (unit-tested only).
 - **E13 three-agent proof, article re-score, packaging readiness (done):** the proofs and the re-scored article
   coverage are in `evaluation-roadmap.md` (Result section); quickstart and live examples in `examples/`;
   `docs/agent-evals-publishing-checklist.md` (nothing published).

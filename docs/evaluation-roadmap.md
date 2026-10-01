@@ -1,6 +1,6 @@
 # Evaluation roadmap: `agent-evals` and the four-layer model
 
-Status: E0–E10 done and E11 done offline, E12 done and deployed (see `evaluation-framework.md`); E13 planned below. The E4–E10 sections below are kept as written; deviations are listed in `evaluation-framework.md` §6. Written 2026-09-29 from the article
+Status: E0–E10 done and E11 done offline, E12 done and deployed, and its baseline and judge stages now run on the engine (see `evaluation-framework.md`); E13 planned below. The E4–E10 sections below are kept as written; deviations are listed in `evaluation-framework.md` §6. Written 2026-09-29 from the article
 "AI Agent Evaluation: Outcome, Trajectory, and Operational Metrics in Production Systems" (Level Up Coding, Aug 2026).
 
 ## Context
