@@ -8,11 +8,9 @@ from __future__ import annotations
 
 import dataclasses
 import json
-from pathlib import Path
-
-from _paths import FIXTURES
 
 import pytest
+from _paths import FIXTURES
 
 import agent_evals
 from agent_evals import (

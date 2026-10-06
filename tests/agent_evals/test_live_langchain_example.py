@@ -5,12 +5,10 @@ from __future__ import annotations
 import importlib.util
 import json
 import re
-from pathlib import Path
-
-from _paths import EXAMPLES
 from typing import Any
 
 import pytest
+from _paths import EXAMPLES
 
 pytest.importorskip("langchain_core", reason="this example needs langchain; it is not a dependency")
 

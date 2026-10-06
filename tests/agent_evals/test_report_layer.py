@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from _paths import FIXTURES
-
 import pytest
+from _paths import FIXTURES
 
 from agent_evals import (
     EXAMPLE_PROFILES,

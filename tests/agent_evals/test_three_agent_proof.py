@@ -5,9 +5,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-from _paths import CONFORMANCE_CASES
-
 import pytest
+from _paths import CONFORMANCE_CASES
 
 from agent_evals import (
     ArgumentCorrectness,
