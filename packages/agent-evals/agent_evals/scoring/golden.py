@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from .evaluation import _non_empty
-from .steps import GenericStep, GenericTrajectory
+from ..core.evaluation import _non_empty
+from ..core.steps import GenericStep, GenericTrajectory
 
 
 class GoldenRefreshError(ValueError):

@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from .comparison import CaseResult, ComparisonRequest, ComparisonResult
-from .evaluation import (
+from ..core.evaluation import (
     EvaluationCase,
     EvaluationVariant,
     Metric,
@@ -22,8 +22,8 @@ from .evaluation import (
     _await_value,
     _validated_metrics,
 )
-from .evidence import EvidenceEvent, EvidenceSink
-from .prediction import PredictionResult, normalize_scores, scorer_name
+from ..core.evidence import EvidenceEvent, EvidenceSink
+from ..core.prediction import PredictionResult, normalize_scores, scorer_name
 
 logger = logging.getLogger("agent_evals.runner")
 

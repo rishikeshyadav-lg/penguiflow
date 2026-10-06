@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from math import comb
 from typing import Literal
 
-from .execution import RepeatedRun
+from ..running.execution import RepeatedRun
 
 Consistency = Literal["consistently_correct", "consistently_incorrect", "intermittent"]
 

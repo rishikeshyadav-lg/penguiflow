@@ -14,8 +14,8 @@ from collections.abc import Awaitable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
-from .evaluation import EvaluationCase
-from .prediction import PredictionResult
+from ..core.evaluation import EvaluationCase
+from ..core.prediction import PredictionResult
 
 ToleranceKind = Literal["absolute", "relative"]
 

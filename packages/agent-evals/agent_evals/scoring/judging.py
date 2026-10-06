@@ -16,7 +16,7 @@ from collections.abc import Awaitable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from .evaluation import EvaluationCase, _await_value
+from ..core.evaluation import EvaluationCase, _await_value
 
 
 @dataclass(frozen=True, slots=True)

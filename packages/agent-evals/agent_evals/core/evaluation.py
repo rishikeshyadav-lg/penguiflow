@@ -400,7 +400,7 @@ class LocalEvaluationBackend:
         """Evaluate the baseline and candidate against every fixed case."""
 
         # The runner imports this module for the types above, so it is imported here to avoid a cycle.
-        from .runner import run_cases
+        from ..running.runner import run_cases
 
         self._emit_started(request)
 

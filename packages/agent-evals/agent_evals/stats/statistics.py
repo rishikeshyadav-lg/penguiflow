@@ -21,7 +21,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from .evaluation import MetricSpecification, PairedCaseResult, _non_empty
+from ..core.evaluation import MetricSpecification, PairedCaseResult, _non_empty
 
 # Two-sided 95% critical value and the one-sided value for 80% power. Requiring an interval's lower
 # bound above a bar means the estimate must exceed the bar by 1.96 standard errors; reaching that 80%

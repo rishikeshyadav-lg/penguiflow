@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from .operational import OperationalSummary, RegressionStatus, regression_status
+from ..scoring.operational import OperationalSummary, RegressionStatus, regression_status
 from .thresholds import PromotionThresholds
 
 ProfileOrigin = Literal["example", "derived"]

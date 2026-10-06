@@ -14,8 +14,8 @@ from contextlib import nullcontext
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from agent_evals.evidence import EvidenceContext, EvidenceSink, redact_attributes
-from agent_evals.evidence import EvidenceEvent as NeutralEvidenceEvent
+from agent_evals.core.evidence import EvidenceContext, EvidenceSink, redact_attributes
+from agent_evals.core.evidence import EvidenceEvent as NeutralEvidenceEvent
 
 logger = logging.getLogger("learning_control_plane.evidence")
 

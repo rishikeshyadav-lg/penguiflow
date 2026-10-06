@@ -15,11 +15,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from .datasets import DatasetManifest
-from .evaluation import EvaluationDataset, EvaluationVariant, RunOne
+from ..core.datasets import DatasetManifest
+from ..core.evaluation import EvaluationDataset, EvaluationVariant, RunOne
 from .execution import JsonlRowSink, RepeatedRun, RunSettings, run_repeated
 from .runner import Scorers
-from .statistics import BootstrapInterval, PairedPrompt, paired_bootstrap
+from ..stats.statistics import BootstrapInterval, PairedPrompt, paired_bootstrap
 
 
 @dataclass(frozen=True, slots=True)

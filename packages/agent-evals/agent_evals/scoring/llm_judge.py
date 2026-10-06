@@ -20,9 +20,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from .evaluation import EvaluationCase, _await_value
+from ..core.evaluation import EvaluationCase, _await_value
 from .judging import JudgeClient
-from .steps import GenericStep, GenericTrajectory
+from ..core.steps import GenericStep, GenericTrajectory
 from .trajectory import trajectory_of
 
 Criterion = Literal["plan_adherence", "multi_step_coherence"]

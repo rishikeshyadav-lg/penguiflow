@@ -17,15 +17,15 @@ from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any
 
-from .datasets import DatasetManifest
-from .execution import RepeatedRun
-from .judging import AgreementReport
-from .operational import OperationalSummary, operational_summary
-from .policy import policy_flag
-from .profiles import ProfileVerdict
-from .statistics import PairedPrompt, paired_bootstrap
-from .suites import SuiteRule, SuiteVerdict, case_scores, suite_verdict
-from .trajectory import selection_gap
+from ..core.datasets import DatasetManifest
+from ..running.execution import RepeatedRun
+from ..scoring.judging import AgreementReport
+from ..scoring.operational import OperationalSummary, operational_summary
+from ..scoring.policy import policy_flag
+from ..stats.profiles import ProfileVerdict
+from ..stats.statistics import PairedPrompt, paired_bootstrap
+from ..running.suites import SuiteRule, SuiteVerdict, case_scores, suite_verdict
+from ..scoring.trajectory import selection_gap
 
 REPORT_SCHEMA_VERSION = "agent-evals.report.v1"
 

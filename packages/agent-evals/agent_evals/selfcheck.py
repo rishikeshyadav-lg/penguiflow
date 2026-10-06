@@ -22,15 +22,15 @@ import textwrap
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
 
-from .datasets import DatasetManifest
-from .evaluation import EvaluationCase, EvaluationDataset, EvaluationVariant
-from .execution import RunSettings
-from .outcome import ExactMatch
-from .prediction import PredictionResult
-from .report import RunRecord, build_report
-from .steps import GenericStep, GenericTrajectory
-from .suites import run_suite
-from .trajectory import ToolSelection
+from .core.datasets import DatasetManifest
+from .core.evaluation import EvaluationCase, EvaluationDataset, EvaluationVariant
+from .running.execution import RunSettings
+from .scoring.outcome import ExactMatch
+from .core.prediction import PredictionResult
+from .reporting.report import RunRecord, build_report
+from .core.steps import GenericStep, GenericTrajectory
+from .running.suites import run_suite
+from .scoring.trajectory import ToolSelection
 
 # Importing the library must not drag in a framework, a model client or a backend.
 FORBIDDEN_MODULES = (

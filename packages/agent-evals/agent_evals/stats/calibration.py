@@ -16,7 +16,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from .execution import RepeatedRun
+from ..running.execution import RepeatedRun
 from .statistics import (
     DETECTION_MULTIPLIER,
     PairedPrompt,

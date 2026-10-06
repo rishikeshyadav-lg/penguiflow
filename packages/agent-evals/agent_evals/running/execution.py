@@ -18,8 +18,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from .evaluation import EvaluationCase, EvaluationVariant, RunOne, VariantCaseResult, _await_value
-from .prediction import PredictionResult
+from ..core.evaluation import EvaluationCase, EvaluationVariant, RunOne, VariantCaseResult, _await_value
+from ..core.prediction import PredictionResult
 from .runner import Scorers, _as_list, run_case_variant
 
 logger = logging.getLogger("agent_evals.execution")

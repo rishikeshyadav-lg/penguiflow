@@ -29,8 +29,8 @@ from agent_evals import (
     run_repeated,
     validate_judge,
 )
-from agent_evals.judging import Comparison
-from agent_evals.report import RunRecord
+from agent_evals.reporting.report import RunRecord
+from agent_evals.scoring.judging import Comparison
 
 
 def _case(case_id: str = "c1") -> EvaluationCase:

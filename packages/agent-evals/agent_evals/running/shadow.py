@@ -14,12 +14,12 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
-from .diffing import TrajectoryDiff, diff_runs
-from .evaluation import EvaluationCase, EvaluationVariant, RunOne
+from ..reporting.diffing import TrajectoryDiff, diff_runs
+from ..core.evaluation import EvaluationCase, EvaluationVariant, RunOne
 from .execution import RunSettings, run_repeated
-from .golden import GoldenTrajectory
-from .policy import PolicyCheck
-from .prediction import PredictionResult
+from ..scoring.golden import GoldenTrajectory
+from ..scoring.policy import PolicyCheck
+from ..core.prediction import PredictionResult
 
 ShadowReference = PredictionResult | GoldenTrajectory
 

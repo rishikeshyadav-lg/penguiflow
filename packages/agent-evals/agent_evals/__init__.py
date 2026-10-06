@@ -4,7 +4,7 @@ Nothing in this package imports an agent framework. An agent takes part by suppl
 callable; scoring, comparison and statistics work on what that callable returns.
 """
 
-from .calibration import (
+from .stats.calibration import (
     OwnerRules,
     PromptBaseline,
     accuracy_calibration,
@@ -14,8 +14,8 @@ from .calibration import (
     null_repeat_noise,
     propose_thresholds,
 )
-from .comparison import CaseResult, ComparisonRequest, ComparisonResult
-from .datasets import (
+from .running.comparison import CaseResult, ComparisonRequest, ComparisonResult
+from .core.datasets import (
     DatasetManifest,
     MetricMismatchError,
     Suite,
@@ -25,7 +25,7 @@ from .datasets import (
     save_dataset,
     save_manifest,
 )
-from .diffing import (
+from .reporting.diffing import (
     ArgumentChange,
     GUARDRAILS_KEY,
     RunView,
@@ -33,7 +33,7 @@ from .diffing import (
     diff_runs,
     view_of,
 )
-from .golden import (
+from .scoring.golden import (
     GoldenApproval,
     GoldenRefreshError,
     GoldenTrajectory,
@@ -42,17 +42,17 @@ from .golden import (
     refresh_golden,
     save_golden,
 )
-from .shadow import (
+from .running.shadow import (
     ShadowCase,
     ShadowReference,
     ShadowReport,
     shadow_compare,
 )
-from .mlflow_backend import (
+from .reporting.mlflow_backend import (
     log_report_to_mlflow,
     report_metrics,
 )
-from .profiles import (
+from .stats.profiles import (
     CheckStatus,
     EXAMPLE_PROFILES,
     ProfileCheck,
@@ -62,7 +62,7 @@ from .profiles import (
     derived_profile,
     evaluate_profile,
 )
-from .report import (
+from .reporting.report import (
     FailedRun,
     REPORT_SCHEMA_VERSION,
     Report,
@@ -75,7 +75,7 @@ from .report import (
     report_json,
     report_markdown,
 )
-from .judging import (
+from .scoring.judging import (
     AgreementReport,
     Comparison,
     DomainJudge,
@@ -87,7 +87,7 @@ from .judging import (
     agreement_report,
     validate_judge,
 )
-from .llm_judge import (
+from .scoring.llm_judge import (
     Criterion,
     PLAN_KEY,
     TrajectoryJudge,
@@ -96,7 +96,7 @@ from .llm_judge import (
     plan_adherence,
     render_steps,
 )
-from .evaluation import (
+from .core.evaluation import (
     EvaluationBackend,
     EvaluationCase,
     EvaluationDataset,
@@ -113,9 +113,9 @@ from .evaluation import (
     RunOne,
     VariantCaseResult,
 )
-from .execution import JsonlRowSink, RepeatedRun, RowKey, RunRow, RunSettings, TransientError, run_repeated
-from .evidence import EvidenceContext, EvidenceEvent, EvidenceSink, redact_attributes
-from .operational import (
+from .running.execution import JsonlRowSink, RepeatedRun, RowKey, RunRow, RunSettings, TransientError, run_repeated
+from .core.evidence import EvidenceContext, EvidenceEvent, EvidenceSink, redact_attributes
+from .scoring.operational import (
     ExecutionEfficiency,
     Loop,
     LoopGuard,
@@ -134,7 +134,7 @@ from .operational import (
     regression_status,
     step_band_from_baseline,
 )
-from .outcome import (
+from .scoring.outcome import (
     Contains,
     ExactMatch,
     NumericMatch,
@@ -146,7 +146,7 @@ from .outcome import (
     answer_of,
     score_rubric,
 )
-from .policy import (
+from .scoring.policy import (
     DENIAL_STATUSES,
     EffectDeclaration,
     PolicyCheck,
@@ -158,8 +158,8 @@ from .policy import (
     is_policy_denial,
     policy_flag,
 )
-from .prediction import PredictionResult, PredictionStatus, ScoreResult, ScoreValue, normalize_scores, scorer_name
-from .repeatability import (
+from .core.prediction import PredictionResult, PredictionStatus, ScoreResult, ScoreValue, normalize_scores, scorer_name
+from .stats.repeatability import (
     CaseRepeatability,
     Consistency,
     RepeatabilityReport,
@@ -169,9 +169,9 @@ from .repeatability import (
     pass_hat_k,
     repeatability,
 )
-from .runner import ComparisonRunner, Scorers, run_case_variant, run_cases, run_comparison
-from .splits import assert_disjoint, split_by_group
-from .statistics import (
+from .running.runner import ComparisonRunner, Scorers, run_case_variant, run_cases, run_comparison
+from .core.splits import assert_disjoint, split_by_group
+from .stats.statistics import (
     DETECTION_MULTIPLIER,
     BootstrapInterval,
     ConfidenceIntervalRequirement,
@@ -185,9 +185,9 @@ from .statistics import (
     prompts_needed_to_clear,
     standard_error_from_interval,
 )
-from .steps import GenericStep, GenericTrajectory
-from .suites import SuiteRule, SuiteVerdict, case_scores, run_suite, suite_verdict
-from .trajectory import (
+from .core.steps import GenericStep, GenericTrajectory
+from .running.suites import SuiteRule, SuiteVerdict, case_scores, run_suite, suite_verdict
+from .scoring.trajectory import (
     AllowedTools,
     ArgumentCorrectness,
     CallArgumentCheck,
@@ -213,7 +213,7 @@ from .trajectory import (
     tool_selection_accuracy,
     trajectory_of,
 )
-from .thresholds import PromotionThresholds, thresholds_version, values_digest
+from .stats.thresholds import PromotionThresholds, thresholds_version, values_digest
 
 __all__ = [
     "AgreementReport",

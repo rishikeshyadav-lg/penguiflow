@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from .evaluation import (
+from ..core.evaluation import (
     EvaluationDataset,
     EvaluationRequest,
     EvaluationVariant,
@@ -21,7 +21,7 @@ from .evaluation import (
     VariantCaseResult,
     _non_empty,
 )
-from .evidence import EvidenceContext
+from ..core.evidence import EvidenceContext
 
 
 @dataclass(frozen=True, slots=True)

@@ -7,6 +7,6 @@ working and refers to the very same classes.
 
 from __future__ import annotations
 
-from agent_evals.steps import GenericStep, GenericTrajectory
+from agent_evals.core.steps import GenericStep, GenericTrajectory
 
 __all__ = ["GenericStep", "GenericTrajectory"]

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from agent_evals.evaluation import (
+from agent_evals.core.evaluation import (
     EvaluationBackend,
     EvaluationCase,
     EvaluationDataset,
@@ -26,7 +26,7 @@ from agent_evals.evaluation import (
     RunOne,
     VariantCaseResult,
 )
-from agent_evals.evaluation import EvaluationRequest as PairedEvaluationRequest
+from agent_evals.core.evaluation import EvaluationRequest as PairedEvaluationRequest
 
 
 @dataclass(frozen=True)

@@ -13,12 +13,12 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 from typing import Any
 
-from .golden import GoldenTrajectory
-from .outcome import _normalized
-from .policy import PolicyCheck
-from .prediction import PredictionResult
-from .steps import GenericStep, GenericTrajectory
-from .trajectory import trajectory_of
+from ..scoring.golden import GoldenTrajectory
+from ..scoring.outcome import _normalized
+from ..scoring.policy import PolicyCheck
+from ..core.prediction import PredictionResult
+from ..core.steps import GenericStep, GenericTrajectory
+from ..scoring.trajectory import trajectory_of
 
 GUARDRAILS_KEY = "guardrails_triggered"
 

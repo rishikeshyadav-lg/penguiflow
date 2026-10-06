@@ -20,10 +20,10 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from .evaluation import EvaluationCase
-from .execution import RepeatedRun, RunRow
-from .statistics import percentile
-from .steps import GenericStep
+from ..core.evaluation import EvaluationCase
+from ..running.execution import RepeatedRun, RunRow
+from ..stats.statistics import percentile
+from ..core.steps import GenericStep
 from .trajectory import trajectory_of
 
 

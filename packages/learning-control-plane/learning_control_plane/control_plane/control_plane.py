@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
 
-from agent_evals.statistics import (
+from agent_evals.stats.statistics import (
     ConfidenceIntervalRequirement,
     MetricConfidenceInterval,
     bootstrap_paired_intervals,

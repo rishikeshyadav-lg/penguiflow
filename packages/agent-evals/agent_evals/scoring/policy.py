@@ -18,10 +18,10 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from .evaluation import EvaluationCase, _await_value
-from .prediction import ScoreResult, normalize_scores, scorer_name
-from .execution import RepeatedRun
-from .steps import GenericStep
+from ..core.evaluation import EvaluationCase, _await_value
+from ..core.prediction import ScoreResult, normalize_scores, scorer_name
+from ..running.execution import RepeatedRun
+from ..core.steps import GenericStep
 from .trajectory import trajectory_of
 
 SideEffects = Literal["pure", "read", "write", "stateful"]
