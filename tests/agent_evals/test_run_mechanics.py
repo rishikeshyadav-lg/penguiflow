@@ -21,9 +21,9 @@ from agent_evals import (
     run_repeated,
 )
 
-CAMPAIGN_ROW_KEYS = {
+ROW_KEYS = {
     "answer",
-    "arm",
+    "variant_id",
     "category",
     "cost_usd",
     "latency_ms",
@@ -291,8 +291,8 @@ async def test_a_recorded_row_has_every_key_of_the_campaign_runs_file_and_reads_
     await run_repeated(CASES[:1], VARIANTS[:1], with_a_tool_call, score, sink=sink)
 
     written = json.loads(sink.path.read_text().splitlines()[0])
-    assert CAMPAIGN_ROW_KEYS <= set(written)
-    assert written["arm"] == "base"
+    assert ROW_KEYS <= set(written)
+    assert written["variant_id"] == "base"
     assert written["category"] == "lookup"
     assert written["set"] == "mining"
     assert written["native_trace_id"] == "native-9"
@@ -346,3 +346,33 @@ async def test_case_means_leave_out_a_case_whose_every_repeat_failed() -> None:
 def test_settings_that_make_no_sense_are_refused(settings: dict, message: str) -> None:
     with pytest.raises(ValueError, match=message):
         RunSettings(**settings)
+
+
+def test_a_row_written_before_the_variant_key_was_renamed_still_reads() -> None:
+    """Rows written when the variant was called `arm`, after the first consumer's vocabulary, must keep
+    loading: there are recorded runs in that shape and re-running them is not free."""
+
+    legacy = {
+        "answer": "a",
+        "arm": "base",
+        "case_id": "c1",
+        "category": None,
+        "cost_usd": None,
+        "error": None,
+        "latency_ms": None,
+        "llm_usage": {},
+        "metrics": {"correct": 1.0},
+        "native_trace_id": None,
+        "pattern_key": None,
+        "repeat": 0,
+        "score_details": {},
+        "set": None,
+        "tool_calls": [],
+    }
+
+    row = RunRow.from_record(legacy)
+
+    assert row.variant_id == "base"
+    assert row.result.variant_id == "base"
+    assert row.record()["variant_id"] == "base"
+    assert "arm" not in row.record()

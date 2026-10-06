@@ -24,7 +24,7 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/hurtener/penguiflow"
+Homepage = "https://github.com/rishikeshyadav-lg/penguiflow"
 
 [tool.setuptools]
 packages = { find = { include = ["agent_evals*"] } }

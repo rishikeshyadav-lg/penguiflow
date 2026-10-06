@@ -73,12 +73,15 @@ class RunRow:
         return (self.case_id, self.variant_id, self.repeat)
 
     def record(self) -> dict[str, Any]:
-        """The row as a JSON-ready dict. The campaign's `runs.jsonl` keys are all here, plus `case_id`,
-        `metrics` and `score_details`."""
+        """The row as a JSON-ready dict.
+
+        `variant_id` names the variant. Rows written before this key existed named it `arm`, after the
+        first consumer's vocabulary; `from_record` still reads those, so old run files keep working.
+        `category`, `pattern_key`, `set` and `native_trace_id` are optional labels a caller may leave None.
+        """
 
         return {
             "answer": self.answer,
-            "arm": self.variant_id,
             "case_id": self.case_id,
             "category": self.category,
             "cost_usd": self.result.cost_usd,
@@ -92,14 +95,16 @@ class RunRow:
             "score_details": {name: dict(detail) for name, detail in self.result.score_details.items()},
             "set": self.set_name,
             "tool_calls": [dict(call) for call in self.tool_calls],
+            "variant_id": self.variant_id,
         }
 
     @classmethod
     def from_record(cls, record: Mapping[str, Any]) -> RunRow:
-        """Read a row back. The live output object is not stored, so `result.output` is None."""
+        """Read a row back, written by any version. The live output is not stored, so `result.output` is None."""
 
+        variant_id = record["variant_id"] if "variant_id" in record else record["arm"]
         result = VariantCaseResult(
-            variant_id=record["arm"],
+            variant_id=variant_id,
             metrics=record["metrics"],
             error=record["error"],
             score_details=record.get("score_details", {}),
@@ -109,7 +114,7 @@ class RunRow:
         )
         return cls(
             case_id=record["case_id"],
-            variant_id=record["arm"],
+            variant_id=variant_id,
             repeat=record["repeat"],
             result=result,
             answer=record["answer"],
