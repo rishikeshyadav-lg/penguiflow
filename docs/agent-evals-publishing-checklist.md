@@ -27,6 +27,25 @@ Known residue, not yet addressed: `category`, `pattern_key`, `set` and `native_t
 labels from the first consumer's vocabulary, and `advisory_skill` / `source_investigation_digest` sit in the
 neutral core. All are optional. A tool-less chat agent and an HTTP agent are not covered end to end by a test.
 
+**Superseded 2026-10-06 (second decision of the day): the package now has its own repository and it is
+public.** https://github.com/rishikeshyadav-lg/agent-evals, extracted from `packages/agent-evals`, MIT, with
+this monorepo keeping the full history. This reverses the 2026-09-30 "in-house, not open-sourced" decision;
+the owner chose public explicitly after being told it was a reversal. Still not on PyPI: consumers install a
+pinned source archive of that repository.
+
+Checked before publishing: no credentials or tokens; the only "secret" strings are synthetic test values that
+prove redaction works; the one shipped data fixture holds anonymised case ids and numbers, no prompts or
+answers; no workspace URLs or internal hostnames. The LangChain example names a Databricks serving endpoint
+(`databricks-gpt-5-4-nano`) and the `DATABRICKS_CONFIG_PROFILE` variable, which are product and variable
+names rather than anything private.
+
+Verified by cloning the public URL into an empty environment, installing, and running
+`python -m agent_evals.selfcheck`: exit 0. The standalone suite is 385 passed and 18 skipped (the skips need
+this monorepo or LangChain); this monorepo stays at 405 passed with none skipped.
+
+Still open: moving it to an organisation-owned repository, and a tagged `0.1.0` release so consumers bump a
+version rather than a commit.
+
 ## How it is distributed instead
 Consumers install a pinned source archive of the owner's fork, not a package index:
 
