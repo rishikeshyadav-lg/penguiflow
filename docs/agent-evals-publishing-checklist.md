@@ -1,7 +1,31 @@
 # Distribution of `agent-evals`: in-house, not on PyPI
 
-Status: **decided 2026-09-30: the owner is keeping this in-house and is not publishing to PyPI or open-sourcing it
-for now.** Nothing below is to be done unless that changes. Written 2026-09-30.
+Status: **decided 2026-09-30: in-house, not published to PyPI or open-sourced.** That still holds.
+
+**Decided 2026-10-06, after an agnosticism audit:** the package moves to a repository the organisation owns
+rather than a personal fork, so other teams can depend on it without depending on one account. Distribution
+stays a pinned source archive; only the URL changes. Still to do, and it needs someone with org access:
+
+- [ ] Create the org repository and decide whether it holds only `agent-evals` or the whole monorepo.
+- [ ] Push `feat/lcp-framework-agnostic` there and re-point the install URL in `packages/agent-evals/README.md`
+      and `Homepage` in its `pyproject.toml` (both currently name the fork).
+- [ ] Re-point `[tool.uv.sources]` in the campaign repo's `pyproject.toml` (three entries, one commit) and
+      `uv lock`.
+- [ ] Write a CHANGELOG and tag `0.1.0`, so consumers bump a version rather than a commit SHA.
+
+**Done 2026-10-06 so another team can pick this up unaided:**
+
+- `python -m agent_evals.selfcheck` ships inside the package and proves, from a standalone install, both that
+  importing it loads no framework, model client or backend and that unrelated agent shapes score identically.
+  Verified from a cold install with `agent-evals` as the only package present.
+- The run row names the variant `variant_id`, not the campaign's `arm`; `from_record` still reads the old name
+  and the campaign's `legacy_shaped_row` maps it back, so recorded runs keep working.
+- The README quickstart runs as written (it called an undefined `my_agent` and an undefined scorer), and the
+  README no longer names two different GitHub remotes.
+
+Known residue, not yet addressed: `category`, `pattern_key`, `set` and `native_trace_id` remain optional row
+labels from the first consumer's vocabulary, and `advisory_skill` / `source_investigation_digest` sit in the
+neutral core. All are optional. A tool-less chat agent and an HTTP agent are not covered end to end by a test.
 
 ## How it is distributed instead
 Consumers install a pinned source archive of the owner's fork, not a package index:
