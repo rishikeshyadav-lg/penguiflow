@@ -7,6 +7,8 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from _paths import CONFORMANCE_CASES
+
 import pytest
 
 from agent_evals import (
@@ -265,7 +267,9 @@ def test_a_different_answer_is_reported_even_when_the_path_is_the_same() -> None
 
 
 def _conformance_trajectories(tmp_path: Path) -> dict[str, GenericTrajectory]:
-    path = Path(__file__).parents[1] / "learning_control_plane" / "test_provider_conformance.py"
+    path = CONFORMANCE_CASES
+    if path is None:
+        pytest.skip("this needs the monorepo; `python -m agent_evals.selfcheck` is the standalone proof")
     spec = importlib.util.spec_from_file_location("conformance_cases_golden", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

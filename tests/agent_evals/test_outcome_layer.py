@@ -154,6 +154,7 @@ STATUS_SCORES = {"passed": 1.0, "partial": 0.5, "failed": 0.0, "not_applicable":
 
 
 def test_the_weighted_rubric_agrees_with_the_learning_control_planes_on_every_status_combination() -> None:
+    pytest.importorskip("learning_control_plane", reason="this parity check needs the monorepo")
     from learning_control_plane.evaluation.verification import VerificationCheck, score_final_answer
 
     rubric = WeightedRubric(WEIGHTS, minimum_score=0.85, required_full_score=("factual_numerical_correctness",))

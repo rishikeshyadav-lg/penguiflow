@@ -110,6 +110,7 @@ def test_the_package_imports_no_agent_framework_and_not_the_learning_control_pla
 
 
 def test_the_learning_control_plane_reexports_the_very_same_classes() -> None:
+    pytest.importorskip("learning_control_plane", reason="this re-export check needs the monorepo")
     from learning_control_plane import evaluation as lcp_evaluation
     from learning_control_plane.contracts import evidence as lcp_evidence
     from learning_control_plane.contracts import steps as lcp_steps
@@ -193,6 +194,7 @@ async def test_the_events_a_run_emits_are_the_ones_recorded_before_the_move() ->
 def test_a_general_evaluation_needs_no_advisory_skill_but_a_skill_evaluation_does() -> None:
     """The skill rule belongs to the learning control plane; the general request has no such rule."""
 
+    pytest.importorskip("learning_control_plane", reason="this check needs the monorepo")
     from learning_control_plane.evaluation import EvaluationRequest as SkillEvaluationRequest
 
     dataset = _dataset_a()
@@ -222,6 +224,7 @@ def test_a_general_evaluation_needs_no_advisory_skill_but_a_skill_evaluation_doe
 async def test_an_event_the_neutral_backend_emits_can_be_written_by_the_lcp_sinks() -> None:
     """The MLflow and OpenTelemetry sinks stay in the LCP; they must accept the neutral event."""
 
+    pytest.importorskip("learning_control_plane", reason="this check needs the monorepo")
     from learning_control_plane.contracts.evidence import MlflowEvidenceSink
 
     class FakeMlflow:

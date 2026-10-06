@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+from _paths import CONFORMANCE_CASES
+
 import pytest
 
 from agent_evals import (
@@ -36,7 +38,10 @@ FRAMEWORKS = ["penguiflow", "mock", "langchain", "langchain-messages"]
 
 
 def _conformance_cases():
-    path = Path(__file__).parents[1] / "learning_control_plane" / "test_provider_conformance.py"
+    path = CONFORMANCE_CASES
+    if path is None:
+        pytest.skip("this needs the monorepo; `python -m agent_evals.selfcheck` is the standalone proof")
+
     spec = importlib.util.spec_from_file_location("conformance_cases_proof", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

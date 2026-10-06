@@ -6,13 +6,19 @@ import importlib.util
 import json
 import re
 from pathlib import Path
+
+from _paths import EXAMPLES
 from typing import Any
+
+import pytest
+
+pytest.importorskip("langchain_core", reason="this example needs langchain; it is not a dependency")
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
-EXAMPLE = Path(__file__).parents[2] / "examples" / "agent_evals_live_langchain" / "flow.py"
+EXAMPLE = EXAMPLES / "agent_evals_live_langchain" / "flow.py"
 
 
 def _load():

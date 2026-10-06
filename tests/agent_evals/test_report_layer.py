@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from _paths import FIXTURES
+
 import pytest
 
 from agent_evals import (
@@ -39,7 +41,7 @@ from agent_evals import (
     run_repeated,
 )
 
-SNAPSHOT = Path(__file__).parents[1] / "fixtures" / "agent_evals" / "report_snapshot.md"
+SNAPSHOT = FIXTURES / "agent_evals" / "report_snapshot.md"
 EXPECTED = {"tools": ["lookup", "report"], "optimal_steps": 2}
 CASE_IDS = [f"c{n}" for n in range(1, 7)]
 CASES = [

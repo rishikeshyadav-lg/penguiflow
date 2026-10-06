@@ -5,7 +5,9 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-EXAMPLE = Path(__file__).parents[2] / "examples" / "agent_evals_quickstart" / "flow.py"
+from _paths import EXAMPLES
+
+EXAMPLE = EXAMPLES / "agent_evals_quickstart" / "flow.py"
 
 
 def _load():

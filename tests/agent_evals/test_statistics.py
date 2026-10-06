@@ -10,6 +10,8 @@ import dataclasses
 import json
 from pathlib import Path
 
+from _paths import FIXTURES
+
 import pytest
 
 import agent_evals
@@ -40,7 +42,7 @@ from agent_evals import (
     values_digest,
 )
 
-FIXTURE = Path(__file__).parents[1] / "fixtures" / "agent_evals" / "mined_v3_case_metrics.json"
+FIXTURE = FIXTURES / "agent_evals" / "mined_v3_case_metrics.json"
 
 # Recorded from the old code (the gate's private bootstrap) on the metrics-only fixture above.
 GATE_GOLDEN = {
@@ -213,6 +215,7 @@ def test_a_resample_whose_baseline_scored_nothing_still_has_a_defined_relative_c
 
 
 def test_the_gate_and_the_package_share_one_interval_type() -> None:
+    pytest.importorskip("learning_control_plane", reason="this parity check needs the monorepo")
     from learning_control_plane.control_plane import (
         ConfidenceIntervalRequirement as GateRequirement,
     )
