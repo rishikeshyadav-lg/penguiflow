@@ -21,9 +21,9 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from ..core.evaluation import EvaluationCase
+from ..core.steps import GenericStep
 from ..running.execution import RepeatedRun, RunRow
 from ..stats.statistics import percentile
-from ..core.steps import GenericStep
 from .trajectory import trajectory_of
 
 

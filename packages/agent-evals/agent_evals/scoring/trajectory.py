@@ -19,9 +19,9 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from ..core.evaluation import EvaluationCase
-from ..running.execution import RepeatedRun
 from ..core.prediction import PredictionResult, ScoreResult
 from ..core.steps import GenericTrajectory
+from ..running.execution import RepeatedRun
 from ..running.suites import case_scores
 
 SequenceMode = Literal["exact", "in_order", "any_order"]

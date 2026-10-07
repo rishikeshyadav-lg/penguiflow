@@ -19,13 +19,13 @@ from typing import Any
 
 from ..core.datasets import DatasetManifest
 from ..running.execution import RepeatedRun
+from ..running.suites import SuiteRule, SuiteVerdict, case_scores, suite_verdict
 from ..scoring.judging import AgreementReport
 from ..scoring.operational import OperationalSummary, operational_summary
 from ..scoring.policy import policy_flag
+from ..scoring.trajectory import selection_gap
 from ..stats.profiles import ProfileVerdict
 from ..stats.statistics import PairedPrompt, paired_bootstrap
-from ..running.suites import SuiteRule, SuiteVerdict, case_scores, suite_verdict
-from ..scoring.trajectory import selection_gap
 
 REPORT_SCHEMA_VERSION = "agent-evals.report.v1"
 
@@ -212,7 +212,8 @@ def build_scorecard(
             resamples=resamples, seed=seed, missing_reason="not configured: plan adherence needs a judge",
         ),
         _metric_entry(
-            run, variant_id, "execution_efficiency", "Execution efficiency", "operational", metrics.execution_efficiency,
+            run, variant_id, "execution_efficiency", "Execution efficiency", "operational",
+            metrics.execution_efficiency,
             resamples=resamples, seed=seed, missing_reason="no efficiency scorer is configured",
         ),
     ]  # fmt: skip

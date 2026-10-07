@@ -17,9 +17,9 @@ from dataclasses import dataclass
 
 from ..core.datasets import DatasetManifest
 from ..core.evaluation import EvaluationDataset, EvaluationVariant, RunOne
+from ..stats.statistics import BootstrapInterval, PairedPrompt, paired_bootstrap
 from .execution import JsonlRowSink, RepeatedRun, RunSettings, run_repeated
 from .runner import Scorers
-from ..stats.statistics import BootstrapInterval, PairedPrompt, paired_bootstrap
 
 
 @dataclass(frozen=True, slots=True)

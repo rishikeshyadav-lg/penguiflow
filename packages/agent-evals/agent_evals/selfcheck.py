@@ -24,12 +24,12 @@ from typing import Any
 
 from .core.datasets import DatasetManifest
 from .core.evaluation import EvaluationCase, EvaluationDataset, EvaluationVariant
-from .running.execution import RunSettings
-from .scoring.outcome import ExactMatch
 from .core.prediction import PredictionResult
-from .reporting.report import RunRecord, build_report
 from .core.steps import GenericStep, GenericTrajectory
+from .reporting.report import RunRecord, build_report
+from .running.execution import RunSettings
 from .running.suites import run_suite
+from .scoring.outcome import ExactMatch
 from .scoring.trajectory import ToolSelection
 
 # Importing the library must not drag in a framework, a model client or a backend.

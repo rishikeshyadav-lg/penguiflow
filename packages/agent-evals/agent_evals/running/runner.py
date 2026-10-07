@@ -12,7 +12,6 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
-from .comparison import CaseResult, ComparisonRequest, ComparisonResult
 from ..core.evaluation import (
     EvaluationCase,
     EvaluationVariant,
@@ -24,6 +23,7 @@ from ..core.evaluation import (
 )
 from ..core.evidence import EvidenceEvent, EvidenceSink
 from ..core.prediction import PredictionResult, normalize_scores, scorer_name
+from .comparison import CaseResult, ComparisonRequest, ComparisonResult
 
 logger = logging.getLogger("agent_evals.runner")
 

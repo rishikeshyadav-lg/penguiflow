@@ -21,8 +21,8 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from ..core.evaluation import EvaluationCase, _await_value
-from .judging import JudgeClient
 from ..core.steps import GenericStep, GenericTrajectory
+from .judging import JudgeClient
 from .trajectory import trajectory_of
 
 Criterion = Literal["plan_adherence", "multi_step_coherence"]

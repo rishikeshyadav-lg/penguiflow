@@ -31,7 +31,8 @@ def report_metrics(report: Report) -> dict[str, float]:
 def log_report_to_mlflow(
     report: Report, *, tracking_uri: str, experiment_name: str, artifact_location: str | None = None
 ) -> str:
-    """Log a report as one MLflow run (parameters, scorecard metrics, and the JSON and Markdown report) and return its id.
+    """Log a report as one MLflow run (parameters, scorecard metrics, and the JSON and Markdown
+    report), and return its id.
 
     With a database tracking store MLflow keeps artifacts under `./mlruns` unless told otherwise; pass
     `artifact_location` to say where a new experiment's artifacts go.

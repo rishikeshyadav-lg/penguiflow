@@ -253,7 +253,9 @@ async def _run_item(
             try:
                 return await _await_value(run_one(case, variant))
             except TransientError as error:
-                transient_failures.append(error)
+                # noqa B023: this closure is awaited inside the same iteration that made the list,
+                # so it always appends to this attempt's list rather than a later one.
+                transient_failures.append(error)  # noqa: B023
                 raise
 
         started = time.perf_counter()

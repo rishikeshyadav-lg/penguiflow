@@ -4,17 +4,6 @@ Nothing in this package imports an agent framework. An agent takes part by suppl
 callable; scoring, comparison and statistics work on what that callable returns.
 """
 
-from .stats.calibration import (
-    OwnerRules,
-    PromptBaseline,
-    accuracy_calibration,
-    baselines_from_run,
-    candidate_floor,
-    null_accuracy_margin,
-    null_repeat_noise,
-    propose_thresholds,
-)
-from .running.comparison import CaseResult, ComparisonRequest, ComparisonResult
 from .core.datasets import (
     DatasetManifest,
     MetricMismatchError,
@@ -24,77 +13,6 @@ from .core.datasets import (
     load_manifest,
     save_dataset,
     save_manifest,
-)
-from .reporting.diffing import (
-    ArgumentChange,
-    GUARDRAILS_KEY,
-    RunView,
-    TrajectoryDiff,
-    diff_runs,
-    view_of,
-)
-from .scoring.golden import (
-    GoldenApproval,
-    GoldenRefreshError,
-    GoldenTrajectory,
-    freeze_golden,
-    load_golden,
-    refresh_golden,
-    save_golden,
-)
-from .running.shadow import (
-    ShadowCase,
-    ShadowReference,
-    ShadowReport,
-    shadow_compare,
-)
-from .reporting.mlflow_backend import (
-    log_report_to_mlflow,
-    report_metrics,
-)
-from .stats.profiles import (
-    CheckStatus,
-    EXAMPLE_PROFILES,
-    ProfileCheck,
-    ProfileOrigin,
-    ProfileVerdict,
-    ThresholdProfile,
-    derived_profile,
-    evaluate_profile,
-)
-from .reporting.report import (
-    FailedRun,
-    REPORT_SCHEMA_VERSION,
-    Report,
-    RunRecord,
-    Scorecard,
-    ScorecardEntry,
-    ScorecardMetrics,
-    build_report,
-    build_scorecard,
-    report_json,
-    report_markdown,
-)
-from .scoring.judging import (
-    AgreementReport,
-    Comparison,
-    DomainJudge,
-    JudgeClient,
-    JudgeScorer,
-    JudgeVerdict,
-    LabelledExample,
-    StoredVerdicts,
-    agreement_report,
-    validate_judge,
-)
-from .scoring.llm_judge import (
-    Criterion,
-    PLAN_KEY,
-    TrajectoryJudge,
-    multi_step_coherence,
-    parse_step_verdicts,
-    plan_adherence,
-    render_steps,
 )
 from .core.evaluation import (
     EvaluationBackend,
@@ -113,15 +31,82 @@ from .core.evaluation import (
     RunOne,
     VariantCaseResult,
 )
-from .running.execution import JsonlRowSink, RepeatedRun, RowKey, RunRow, RunSettings, TransientError, run_repeated
 from .core.evidence import EvidenceContext, EvidenceEvent, EvidenceSink, redact_attributes
+from .core.prediction import PredictionResult, PredictionStatus, ScoreResult, ScoreValue, normalize_scores, scorer_name
+from .core.splits import assert_disjoint, split_by_group
+from .core.steps import GenericStep, GenericTrajectory
+from .reporting.diffing import (
+    GUARDRAILS_KEY,
+    ArgumentChange,
+    RunView,
+    TrajectoryDiff,
+    diff_runs,
+    view_of,
+)
+from .reporting.mlflow_backend import (
+    log_report_to_mlflow,
+    report_metrics,
+)
+from .reporting.report import (
+    REPORT_SCHEMA_VERSION,
+    FailedRun,
+    Report,
+    RunRecord,
+    Scorecard,
+    ScorecardEntry,
+    ScorecardMetrics,
+    build_report,
+    build_scorecard,
+    report_json,
+    report_markdown,
+)
+from .running.comparison import CaseResult, ComparisonRequest, ComparisonResult
+from .running.execution import JsonlRowSink, RepeatedRun, RowKey, RunRow, RunSettings, TransientError, run_repeated
+from .running.runner import ComparisonRunner, Scorers, run_case_variant, run_cases, run_comparison
+from .running.shadow import (
+    ShadowCase,
+    ShadowReference,
+    ShadowReport,
+    shadow_compare,
+)
+from .running.suites import SuiteRule, SuiteVerdict, case_scores, run_suite, suite_verdict
+from .scoring.golden import (
+    GoldenApproval,
+    GoldenRefreshError,
+    GoldenTrajectory,
+    freeze_golden,
+    load_golden,
+    refresh_golden,
+    save_golden,
+)
+from .scoring.judging import (
+    AgreementReport,
+    Comparison,
+    DomainJudge,
+    JudgeClient,
+    JudgeScorer,
+    JudgeVerdict,
+    LabelledExample,
+    StoredVerdicts,
+    agreement_report,
+    validate_judge,
+)
+from .scoring.llm_judge import (
+    PLAN_KEY,
+    Criterion,
+    TrajectoryJudge,
+    multi_step_coherence,
+    parse_step_verdicts,
+    plan_adherence,
+    render_steps,
+)
 from .scoring.operational import (
+    POOLED_BAND,
     ExecutionEfficiency,
     Loop,
     LoopGuard,
     NoLoop,
     OperationalSummary,
-    POOLED_BAND,
     PercentileEstimate,
     RegressionStatus,
     StepBand,
@@ -158,35 +143,6 @@ from .scoring.policy import (
     is_policy_denial,
     policy_flag,
 )
-from .core.prediction import PredictionResult, PredictionStatus, ScoreResult, ScoreValue, normalize_scores, scorer_name
-from .stats.repeatability import (
-    CaseRepeatability,
-    Consistency,
-    RepeatabilityReport,
-    consistency_label,
-    expected_pass_hat_k,
-    pass_at_k,
-    pass_hat_k,
-    repeatability,
-)
-from .running.runner import ComparisonRunner, Scorers, run_case_variant, run_cases, run_comparison
-from .core.splits import assert_disjoint, split_by_group
-from .stats.statistics import (
-    DETECTION_MULTIPLIER,
-    BootstrapInterval,
-    ConfidenceIntervalRequirement,
-    MetricConfidenceInterval,
-    PairedPrompt,
-    accuracy_improvement_detectability,
-    bootstrap_paired_intervals,
-    confidence_statistic,
-    paired_bootstrap,
-    percentile,
-    prompts_needed_to_clear,
-    standard_error_from_interval,
-)
-from .core.steps import GenericStep, GenericTrajectory
-from .running.suites import SuiteRule, SuiteVerdict, case_scores, run_suite, suite_verdict
 from .scoring.trajectory import (
     AllowedTools,
     ArgumentCorrectness,
@@ -212,6 +168,50 @@ from .scoring.trajectory import (
     sequence_matches,
     tool_selection_accuracy,
     trajectory_of,
+)
+from .stats.calibration import (
+    OwnerRules,
+    PromptBaseline,
+    accuracy_calibration,
+    baselines_from_run,
+    candidate_floor,
+    null_accuracy_margin,
+    null_repeat_noise,
+    propose_thresholds,
+)
+from .stats.profiles import (
+    EXAMPLE_PROFILES,
+    CheckStatus,
+    ProfileCheck,
+    ProfileOrigin,
+    ProfileVerdict,
+    ThresholdProfile,
+    derived_profile,
+    evaluate_profile,
+)
+from .stats.repeatability import (
+    CaseRepeatability,
+    Consistency,
+    RepeatabilityReport,
+    consistency_label,
+    expected_pass_hat_k,
+    pass_at_k,
+    pass_hat_k,
+    repeatability,
+)
+from .stats.statistics import (
+    DETECTION_MULTIPLIER,
+    BootstrapInterval,
+    ConfidenceIntervalRequirement,
+    MetricConfidenceInterval,
+    PairedPrompt,
+    accuracy_improvement_detectability,
+    bootstrap_paired_intervals,
+    confidence_statistic,
+    paired_bootstrap,
+    percentile,
+    prompts_needed_to_clear,
+    standard_error_from_interval,
 )
 from .stats.thresholds import PromotionThresholds, thresholds_version, values_digest
 

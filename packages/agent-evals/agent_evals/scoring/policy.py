@@ -20,8 +20,8 @@ from typing import Any, Literal
 
 from ..core.evaluation import EvaluationCase, _await_value
 from ..core.prediction import ScoreResult, normalize_scores, scorer_name
-from ..running.execution import RepeatedRun
 from ..core.steps import GenericStep
+from ..running.execution import RepeatedRun
 from .trajectory import trajectory_of
 
 SideEffects = Literal["pure", "read", "write", "stateful"]

@@ -34,7 +34,10 @@ def _normalized(text: Any) -> str:
 
 @dataclass(frozen=True, slots=True)
 class ExactMatch:
-    """1.0 when the answer equals `case.expected`. Text is compared ignoring case and spacing unless `normalize` is off."""
+    """1.0 when the answer equals `case.expected`.
+
+    Text is compared ignoring case and spacing unless `normalize` is off.
+    """
 
     name: str = "exact_match"
     normalize: bool = True
